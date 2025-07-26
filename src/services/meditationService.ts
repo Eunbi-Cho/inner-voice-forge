@@ -96,55 +96,61 @@ interface MeditationScript {
 
 // 감정 분석 함수
 export async function analyzeEmotion(input: MeditationInput): Promise<string> {
-  if (!OPENAI_API_KEY || OPENAI_API_KEY.length < 10) {
-    throw new Error('OpenAI API 키가 필요합니다. API 키를 설정해주세요.');
-  }
+  console.log('감정 분석 시작...', { text: input.text.substring(0, 50) });
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `당신은 감정 분석 전문가입니다. 사용자의 텍스트를 분석하여 현재 감정 상태와 스트레스 수준을 파악하고, 간단한 분석 결과를 한국어로 제공하세요. 
+            
+            분석할 내용:
+            - 주요 감정 (예: 스트레스, 불안, 슬픔, 기쁨, 분노, 혼란 등)
+            - 감정의 강도 (낮음/보통/높음)
+            - 주요 원인이나 상황
+            - 권장 명상 유형
+            
+            간결하고 따뜻한 톤으로 2-3문장으로 요약해주세요.`
+          },
+          {
+            role: 'user',
+            content: `다음 내용을 분석해주세요: "${input.text}"`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 200
+      })
+    });
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `당신은 감정 분석 전문가입니다. 사용자의 텍스트를 분석하여 현재 감정 상태와 스트레스 수준을 파악하고, 간단한 분석 결과를 한국어로 제공하세요. 
-          
-          분석할 내용:
-          - 주요 감정 (예: 스트레스, 불안, 슬픔, 기쁨, 분노, 혼란 등)
-          - 감정의 강도 (낮음/보통/높음)
-          - 주요 원인이나 상황
-          - 권장 명상 유형
-          
-          간결하고 따뜻한 톤으로 2-3문장으로 요약해주세요.`
-        },
-        {
-          role: 'user',
-          content: `다음 내용을 분석해주세요: "${input.text}"`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 200
-    })
-  });
+    console.log('감정 분석 응답 상태:', response.status);
 
-  if (!response.ok) {
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API 오류:', errorText);
+      throw new Error(`감정 분석 API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('감정 분석 완료');
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('감정 분석 중 오류:', error);
     throw new Error('감정 분석 중 오류가 발생했습니다.');
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 // 명상 스크립트 생성 함수
 export async function generateMeditationScript(input: MeditationInput): Promise<MeditationScript> {
-  if (!OPENAI_API_KEY || OPENAI_API_KEY.length < 10) {
-    throw new Error('OpenAI API 키가 필요합니다. API 키를 설정해주세요.');
-  }
-
+  console.log('명상 스크립트 생성 시작...', { duration: input.duration });
+  
   const userPrompt = `
 사용자 입력: "${input.text}"
 명상 시간: ${input.duration}분
@@ -152,44 +158,56 @@ export async function generateMeditationScript(input: MeditationInput): Promise<
 위 내용을 바탕으로 사용자의 현재 상태에 맞는 ${input.duration}분짜리 개인화된 명상 가이드를 만들어주세요.
 `;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: MEDITATION_SYSTEM_PROMPT
-        },
-        {
-          role: 'user',
-          content: userPrompt
-        }
-      ],
-      temperature: 0.8,
-      max_tokens: 2000
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error('명상 스크립트 생성 중 오류가 발생했습니다.');
-  }
-
-  const data = await response.json();
-  
   try {
-    const scriptData = JSON.parse(data.choices[0].message.content);
-    return {
-      intro: scriptData.intro,
-      contents: scriptData.contents,
-      outro: scriptData.outro
-    };
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: MEDITATION_SYSTEM_PROMPT
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 2000
+      })
+    });
+
+    console.log('명상 스크립트 응답 상태:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API 오류:', errorText);
+      throw new Error(`명상 스크립트 생성 API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('명상 스크립트 생성 완료');
+    
+    try {
+      const scriptData = JSON.parse(data.choices[0].message.content);
+      return {
+        intro: scriptData.intro,
+        contents: scriptData.contents,
+        outro: scriptData.outro
+      };
+    } catch (parseError) {
+      console.error('JSON 파싱 오류:', parseError);
+      console.log('원본 응답:', data.choices[0].message.content);
+      throw new Error('명상 스크립트 형식 오류가 발생했습니다.');
+    }
   } catch (error) {
-    throw new Error('명상 스크립트 파싱 중 오류가 발생했습니다.');
+    console.error('명상 스크립트 생성 중 오류:', error);
+    throw new Error('명상 스크립트 생성 중 오류가 발생했습니다.');
   }
 }
 
