@@ -75,7 +75,7 @@ export default function MeditationInput({
         {/* 입력 타입 선택 */}
         <Card className="mb-8 shadow-notion border animate-fade-in">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold">오늘, 되돌아 보고 싶은 생각과 감정을 작성해주세요.</CardTitle>
+            <CardTitle className="text-xl font-semibold">오늘 되돌아 보고 싶은 생각과 감정이 무엇인가요?</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-3">
