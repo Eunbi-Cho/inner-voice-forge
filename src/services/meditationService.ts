@@ -1,5 +1,11 @@
 // OpenAI API 서비스
-const OPENAI_API_KEY = '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';
+function getApiKey(): string {
+  const apiKey = localStorage.getItem('openai_api_key');
+  if (!apiKey) {
+    throw new Error('OpenAI API 키가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.');
+  }
+  return apiKey;
+}
 
 // 명상 가이드 시스템 프롬프트
 const MEDITATION_SYSTEM_PROMPT = `# Personal Meditation Guide System Prompt
@@ -103,7 +109,7 @@ export async function analyzeEmotion(input: MeditationInput): Promise<string> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${getApiKey()}`
       },
       body: JSON.stringify({
         model: 'gpt-4o',
@@ -163,7 +169,7 @@ export async function generateMeditationScript(input: MeditationInput): Promise<
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${getApiKey()}`
       },
       body: JSON.stringify({
         model: 'gpt-4o',
