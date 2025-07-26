@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, Pause, Square, FileText, Timer, Brain } from "lucide-react";
+import { ArrowLeft, Play, Pause, Square, FileText, Timer, Brain, Volume2 } from "lucide-react";
+import { generateTTS } from "@/services/meditationService";
 
 interface MeditationPlayerProps {
   meditationData: {
@@ -25,8 +26,11 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   const [currentPhase, setCurrentPhase] = useState<'intro' | 'core' | 'outro'>('intro');
   const [showScript, setShowScript] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [isLoadingTTS, setIsLoadingTTS] = useState(false);
+  const [audioUrls, setAudioUrls] = useState<{intro?: string, core?: string, outro?: string}>({});
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const totalDuration = meditationData.inputData.duration * 60; // 분을 초로 변환
 
   // 페이즈별 시간 분배 (intro: 15%, core: 70%, outro: 15%)
@@ -48,16 +52,55 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handlePlayPause = () => {
+  const playCurrentPhase = async (phase?: 'intro' | 'core' | 'outro') => {
+    const phaseToPlay = phase || currentPhase;
+    const phaseText = getCurrentPhaseText();
+    
+    if (!phaseText) return;
+
+    try {
+      setIsLoadingTTS(true);
+      
+      // 이미 생성된 오디오가 있으면 재사용
+      if (audioUrls[phaseToPlay]) {
+        if (audioRef.current) {
+          audioRef.current.src = audioUrls[phaseToPlay]!;
+          audioRef.current.play();
+        }
+        return;
+      }
+
+      // TTS 생성
+      const audioUrl = await generateTTS(phaseText);
+      if (audioUrl) {
+        setAudioUrls(prev => ({ ...prev, [phaseToPlay]: audioUrl }));
+        
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl;
+          audioRef.current.play();
+        }
+      }
+    } catch (error) {
+      console.error('TTS 재생 실패:', error);
+    } finally {
+      setIsLoadingTTS(false);
+    }
+  };
+
+  const handlePlayPause = async () => {
     if (isPlaying) {
       // 일시정지
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       setIsPlaying(false);
     } else {
       // 재생 시작
+      await playCurrentPhase();
       setIsPlaying(true);
       timerRef.current = setInterval(() => {
         setCurrentTime(prev => {
@@ -66,6 +109,8 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
           
           if (newPhase !== currentPhase) {
             setCurrentPhase(newPhase);
+            // 새로운 페이즈 오디오 재생
+            playCurrentPhase(newPhase);
           }
           
           if (newTime >= totalDuration) {
@@ -73,6 +118,9 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
             if (timerRef.current) {
               clearInterval(timerRef.current);
               timerRef.current = null;
+            }
+            if (audioRef.current) {
+              audioRef.current.pause();
             }
             setIsPlaying(false);
             return totalDuration;
@@ -88,6 +136,10 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
     setIsPlaying(false);
     setCurrentTime(0);
@@ -165,6 +217,8 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 숨겨진 오디오 엘리먼트 */}
+      <audio ref={audioRef} style={{ display: 'none' }} />
       <div className="max-w-2xl mx-auto px-6 py-12">
         {/* 헤더 */}
         <div className="mb-12">

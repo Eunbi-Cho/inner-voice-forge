@@ -282,9 +282,42 @@ export async function generateMeditationScript(input: MeditationInput): Promise<
   }
 }
 
-// TTS 생성 함수 (추후 구현)
+// TTS 생성 함수
 export async function generateTTS(text: string): Promise<string | null> {
-  // OpenAI TTS API 구현 예정
-  // 현재는 null 반환
-  return null;
+  try {
+    const apiKey = getApiKey();
+    
+    console.log('TTS 생성 시작...', { textLength: text.length });
+    
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: 'nova', // 한국어에 적합한 부드러운 여성 목소리
+        response_format: 'mp3'
+      }),
+    });
+
+    console.log('TTS 응답 상태:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('TTS API 오류:', errorText);
+      throw new Error(`TTS API 오류: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    console.log('TTS 생성 완료');
+    return audioUrl;
+  } catch (error) {
+    console.error('TTS 생성 실패:', error);
+    return null;
+  }
 }
