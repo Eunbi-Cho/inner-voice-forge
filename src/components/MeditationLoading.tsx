@@ -152,12 +152,14 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
               </Button>
             </div>
             
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg text-left">
-              <p className="text-sm text-muted-foreground">
-                <strong>참고:</strong> OpenAI API 키가 필요합니다. 
-                실제 사용을 위해서는 API 키를 설정해주세요.
-              </p>
-            </div>
+            {error.includes('OpenAI API 키') && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg text-left">
+                <p className="text-sm text-muted-foreground">
+                  <strong>참고:</strong> OpenAI API 키가 필요합니다. 
+                  실제 사용을 위해서는 API 키를 설정해주세요.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
