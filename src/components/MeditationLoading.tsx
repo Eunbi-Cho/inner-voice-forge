@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Brain, FileText, Volume2, Sparkles } from "lucide-react";
 
 interface MeditationLoadingProps {
   onComplete: (meditationData: any) => void;
@@ -15,10 +16,30 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
   const [progress, setProgress] = useState(0);
 
   const steps = [
-    { title: "감정 분석 중", description: "AI가 당신의 마음 상태를 분석하고 있습니다", duration: 3000 },
-    { title: "명상 스크립트 생성", description: "맞춤형 명상 가이드를 작성하고 있습니다", duration: 4000 },
-    { title: "음성 변환 준비", description: "intro, core, outro 파트를 준비하고 있습니다", duration: 2000 },
-    { title: "최종 준비", description: "당신만의 명상이 거의 완성되었습니다", duration: 1000 }
+    { 
+      title: "감정 분석 중", 
+      description: "AI가 당신의 마음 상태를 분석하고 있습니다", 
+      icon: Brain,
+      duration: 3000 
+    },
+    { 
+      title: "명상 스크립트 생성", 
+      description: "맞춤형 명상 가이드를 작성하고 있습니다", 
+      icon: FileText,
+      duration: 4000 
+    },
+    { 
+      title: "음성 변환 준비", 
+      description: "intro, core, outro 파트를 준비하고 있습니다", 
+      icon: Volume2,
+      duration: 2000 
+    },
+    { 
+      title: "최종 준비", 
+      description: "당신만의 명상이 거의 완성되었습니다", 
+      icon: Sparkles,
+      duration: 1000 
+    }
   ];
 
   useEffect(() => {
@@ -79,31 +100,32 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
     };
   }, [inputData, onComplete]);
 
+  const currentStepData = steps[currentStep];
+
   return (
-    <div className="min-h-screen bg-gradient-background flex items-center justify-center p-6">
-      <Card className="bg-gradient-card shadow-card-soft border-0 max-w-md w-full animate-scale-up">
-        <CardContent className="p-8 text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <Card className="border shadow-notion max-w-md w-full animate-scale-in">
+        <CardContent className="p-12 text-center">
           {/* 로딩 아이콘 */}
-          <div className="w-20 h-20 bg-gradient-primary rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse-soft">
-            <svg className="w-10 h-10 text-primary-foreground animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+          <div className="w-20 h-20 bg-muted rounded-full mx-auto mb-8 flex items-center justify-center">
+            {currentStepData && (
+              <currentStepData.icon className="w-10 h-10 text-foreground animate-pulse" />
+            )}
           </div>
 
           {/* 현재 단계 */}
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            {steps[currentStep]?.title}
+          <h2 className="text-2xl font-bold text-foreground mb-3">
+            {currentStepData?.title}
           </h2>
-          <p className="text-muted-foreground mb-8">
-            {steps[currentStep]?.description}
+          <p className="text-muted-foreground mb-12 leading-relaxed">
+            {currentStepData?.description}
           </p>
 
           {/* 프로그레스 바 */}
-          <div className="space-y-4">
-            <div className="w-full bg-muted rounded-full h-3">
+          <div className="space-y-6">
+            <div className="w-full bg-muted rounded-full h-2">
               <div 
-                className="bg-gradient-primary h-3 rounded-full transition-smooth"
+                className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -113,9 +135,9 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
               {steps.map((_, index) => (
                 <div
                   key={index}
-                  className={`w-3 h-3 rounded-full transition-smooth ${
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     index <= currentStep 
-                      ? 'bg-gradient-primary' 
+                      ? 'bg-primary' 
                       : 'bg-muted'
                   }`}
                 />
@@ -124,7 +146,7 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
           </div>
 
           {/* 예상 시간 */}
-          <div className="mt-6 p-4 bg-background/50 rounded-lg">
+          <div className="mt-8 p-4 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">
               예상 완료 시간: {Math.ceil((steps.length - currentStep) * 2.5)}초
             </p>

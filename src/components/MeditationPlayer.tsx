@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Play, Pause, Square, FileText, Timer } from "lucide-react";
 
 interface MeditationPlayerProps {
   meditationData: {
@@ -119,62 +120,66 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   };
 
   return (
-    <div className="min-h-screen bg-gradient-background p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-2xl mx-auto px-6 py-12">
         {/* 헤더 */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <Button variant="soft" onClick={onBack} className="rounded-full">
-              ← 돌아가기
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              돌아가기
             </Button>
-            <Badge variant="secondary" className="bg-gradient-primary text-primary-foreground">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Timer className="w-3 h-3" />
               {getPhaseText()} 단계
             </Badge>
           </div>
           
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-            나만의 명상
-          </h1>
-          <p className="text-muted-foreground">
-            {meditationData.duration}분 명상 세션
-          </p>
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-foreground mb-3 tracking-tight">
+              나만의 명상
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              {meditationData.duration}분 명상 세션
+            </p>
+          </div>
         </div>
 
         {/* 메인 플레이어 */}
-        <Card className="bg-gradient-card shadow-card-soft border-0 mb-6 animate-scale-up">
-          <CardContent className="p-8 text-center">
+        <Card className="border shadow-notion mb-8 animate-fade-in">
+          <CardContent className="p-12 text-center">
             {/* 시간 표시 */}
-            <div className="mb-8">
-              <div className="text-5xl font-bold text-foreground mb-2">
+            <div className="mb-12">
+              <div className="text-6xl font-bold text-foreground mb-2 tracking-tight">
                 {formatTime(remainingTime)}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground">
                 남은 시간
               </p>
             </div>
 
             {/* 프로그레스 바 */}
-            <div className="space-y-4 mb-8">
+            <div className="space-y-4 mb-12">
               <div className="w-full bg-muted rounded-full h-2">
                 <div 
-                  className="bg-gradient-primary h-2 rounded-full transition-smooth"
+                  className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(totalDuration)}</span>
               </div>
             </div>
 
             {/* 페이즈 표시 */}
-            <div className="flex justify-center space-x-2 mb-8">
+            <div className="flex justify-center space-x-2 mb-12">
               {['intro', 'core', 'outro'].map((phase) => (
                 <div
                   key={phase}
-                  className={`px-3 py-1 rounded-full text-xs transition-smooth ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                     currentPhase === phase
-                      ? 'bg-gradient-primary text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
@@ -186,30 +191,29 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
             </div>
 
             {/* 컨트롤 버튼 */}
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center items-center space-x-4">
               <Button
-                variant="soft"
-                size="lg"
+                variant="outline"
+                size="icon"
                 onClick={handleReset}
-                className="rounded-full w-14 h-14"
+                className="w-12 h-12 rounded-full"
               >
-                ⏹️
+                <Square className="w-5 h-5" />
               </Button>
               <Button
-                variant="meditation"
                 size="lg"
                 onClick={handlePlayPause}
-                className="rounded-full w-16 h-16 text-2xl"
+                className="w-16 h-16 rounded-full text-xl"
               >
-                {isPlaying ? '⏸️' : '▶️'}
+                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
               </Button>
               <Button
-                variant="soft"
-                size="lg"
+                variant="outline"
+                size="icon"
                 onClick={() => setShowScript(!showScript)}
-                className="rounded-full w-14 h-14"
+                className="w-12 h-12 rounded-full"
               >
-                📝
+                <FileText className="w-5 h-5" />
               </Button>
             </div>
           </CardContent>
@@ -217,37 +221,40 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
 
         {/* 스크립트 표시 */}
         {showScript && (
-          <Card className="bg-gradient-card shadow-card-soft border-0 animate-scale-up">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
+          <Card className="border shadow-notion animate-fade-in">
+            <CardContent className="p-8">
+              <h3 className="text-xl font-semibold text-foreground mb-6 text-center flex items-center justify-center gap-2">
+                <FileText className="w-5 h-5" />
                 현재 가이드 ({getPhaseText()} 단계)
               </h3>
-              <div className="bg-background/50 p-4 rounded-lg">
-                <p className="text-foreground leading-relaxed">
+              
+              <div className="bg-muted/50 p-6 rounded-lg mb-8">
+                <p className="text-foreground leading-relaxed text-lg">
                   {getCurrentScript()}
                 </p>
               </div>
               
               {/* 전체 스크립트 미리보기 */}
-              <div className="mt-6 space-y-3">
-                <details className="group">
-                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
-                    전체 스크립트 보기
-                  </summary>
-                  <div className="mt-3 space-y-4">
-                    {Object.entries(meditationData.script).map(([phase, text]) => (
-                      <div key={phase} className="bg-background/30 p-3 rounded-lg">
-                        <h4 className="text-sm font-medium text-foreground mb-2">
-                          {phase === 'intro' && '🌅 시작'}
-                          {phase === 'core' && '🧘‍♀️ 명상'}
-                          {phase === 'outro' && '🌟 마무리'}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">{text}</p>
-                      </div>
-                    ))}
+              <details className="group">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-notion list-none">
+                  <div className="flex items-center gap-2">
+                    <span>전체 스크립트 보기</span>
+                    <span className="group-open:rotate-180 transition-transform">▼</span>
                   </div>
-                </details>
-              </div>
+                </summary>
+                <div className="mt-6 space-y-6">
+                  {Object.entries(meditationData.script).map(([phase, text]) => (
+                    <div key={phase} className="border border-border rounded-lg p-6">
+                      <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                        {phase === 'intro' && <span>🌅 시작</span>}
+                        {phase === 'core' && <span>🧘‍♀️ 명상</span>}
+                        {phase === 'outro' && <span>🌟 마무리</span>}
+                      </h4>
+                      <p className="text-muted-foreground leading-relaxed">{text}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
             </CardContent>
           </Card>
         )}
