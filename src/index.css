@@ -8,93 +8,86 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* 노션 스타일 블랙 앤 화이트 색상 팔레트 */
+    /* Peace 앱 스타일 - 파란색 기반 깔끔한 디자인 */
     --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --foreground: 220 26% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 220 26% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 220 26% 14%;
 
-    --primary: 0 0% 9%;
+    --primary: 220 91% 55%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 26% 14%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 45 93% 58%;
+    --accent-foreground: 220 26% 14%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 9%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 91% 55%;
 
-    --radius: 0.5rem;
+    --radius: 12px;
 
-    /* 노션 스타일 그림자 */
-    --shadow-notion: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    --shadow-notion-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+    /* Peace 스타일 그림자 */
+    --shadow-subtle: 0 1px 3px rgba(59, 130, 246, 0.1);
+    --shadow-medium: 0 4px 6px rgba(59, 130, 246, 0.1);
     
     /* 애니메이션 */
-    --transition-notion: all 0.15s ease;
+    --transition-smooth: all 0.2s ease;
 
     --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-foreground: 220 26% 14%;
+    --sidebar-primary: 220 91% 55%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 220 26% 14%;
     --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 220 91% 55%;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 220 27% 9%;
     --foreground: 0 0% 98%;
 
-    --card: 0 0% 3.9%;
+    --card: 220 27% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 3.9%;
+    --popover: 220 27% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 220 91% 55%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 14.9%;
+    --secondary: 220 27% 16%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 220 27% 16%;
+    --muted-foreground: 220 9% 64%;
 
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 45 93% 58%;
+    --accent-foreground: 220 27% 9%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62% 31%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 220 27% 16%;
+    --input: 220 27% 16%;
+    --ring: 220 91% 55%;
 
     /* 다크 모드 그림자 */
-    --shadow-notion: 0 1px 3px rgba(255, 255, 255, 0.12), 0 1px 2px rgba(255, 255, 255, 0.24);
-    --shadow-notion-hover: 0 3px 6px rgba(255, 255, 255, 0.15), 0 2px 4px rgba(255, 255, 255, 0.12);
+    --shadow-subtle: 0 1px 3px rgba(59, 130, 246, 0.2);
+    --shadow-medium: 0 4px 6px rgba(59, 130, 246, 0.2);
   }
 }
 

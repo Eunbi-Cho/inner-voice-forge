@@ -76,11 +76,11 @@ export default {
 				}
 			},
 			boxShadow: {
-				'notion': 'var(--shadow-notion)',
-				'notion-hover': 'var(--shadow-notion-hover)',
+				'subtle': 'var(--shadow-subtle)',
+				'medium': 'var(--shadow-medium)',
 			},
 			transitionTimingFunction: {
-				'notion': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+				'smooth': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
