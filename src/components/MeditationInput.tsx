@@ -59,19 +59,14 @@ export default function MeditationInput({
         </div>
 
         {/* 명상 시간 선택 */}
-        <Card className="mb-8 shadow-notion border animate-fade-in">
-          <CardHeader className="pb-4">
-            
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4">
-              {durations.map(duration => <Button key={duration.value} variant={selectedDuration === duration.value ? "default" : "outline"} className="flex flex-col gap-2 h-auto py-6" onClick={() => setSelectedDuration(duration.value)}>
-                  <span className="text-xl font-bold">{duration.label}</span>
-                  <span className="text-sm opacity-80">{duration.description}</span>
-                </Button>)}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-8">
+          <div className="grid grid-cols-3 gap-4">
+            {durations.map(duration => <Button key={duration.value} variant={selectedDuration === duration.value ? "default" : "outline"} className="flex flex-col gap-2 h-auto py-6" onClick={() => setSelectedDuration(duration.value)}>
+                <span className="text-xl font-bold">{duration.label}</span>
+                <span className="text-sm opacity-80">{duration.description}</span>
+              </Button>)}
+          </div>
+        </div>
 
         {/* ChatGPT 스타일 입력창 */}
         <div className="mb-8">
