@@ -17,7 +17,6 @@ export default function MeditationInput({
   const [text, setText] = useState("");
   const [selectedDuration, setSelectedDuration] = useState(10);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [inputType, setInputType] = useState<'text' | 'diary' | 'image'>('text');
   const durations = [{
     value: 10,
     label: "10분",
@@ -31,19 +30,6 @@ export default function MeditationInput({
     label: "30분",
     description: "완전한 이완"
   }];
-  const inputTypes = [{
-    type: 'text' as const,
-    label: '감정 텍스트',
-    icon: Type
-  }, {
-    type: 'diary' as const,
-    label: '일기',
-    icon: BookOpen
-  }, {
-    type: 'image' as const,
-    label: '이미지',
-    icon: Image
-  }];
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -51,7 +37,7 @@ export default function MeditationInput({
     }
   };
   const handleGenerate = () => {
-    if (inputType !== 'image' && text.trim() || inputType === 'image' && selectedFile) {
+    if (text.trim()) {
       onGenerate({
         text: text.trim(),
         duration: selectedDuration,
@@ -59,7 +45,7 @@ export default function MeditationInput({
       });
     }
   };
-  const isValid = inputType !== 'image' && text.trim().length > 0 || inputType === 'image' && selectedFile;
+  const isValid = text.trim().length > 0;
   return <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-6 py-12">
         {/* 헤더 */}
@@ -72,31 +58,13 @@ export default function MeditationInput({
           </p>
         </div>
 
-        {/* 입력 타입 선택 */}
-        <Card className="mb-8 shadow-notion border animate-fade-in">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold">오늘 되돌아 보고 싶은 생각과 감정이 무엇인가요?</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-3">
-              {inputTypes.map(type => <Button key={type.type} variant={inputType === type.type ? "default" : "outline"} className="flex flex-col gap-3 h-auto py-6" onClick={() => setInputType(type.type)}>
-                  <type.icon className="w-5 h-5" />
-                  <span className="text-sm font-medium">{type.label}</span>
-                </Button>)}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* ChatGPT 스타일 입력창 */}
         <div className="mb-8">
           <div className="border border-border rounded-2xl bg-card shadow-sm">
-            {inputType !== 'image' ? (
-              <div className="relative">
-                <Textarea 
-                  placeholder={inputType === 'text' 
-                    ? "오늘 되돌아보고 싶은 생각과 감정을 작성하세요..." 
-                    : "오늘 하루 어떤 일이 있었는지, 어떤 감정을 느꼈는지 자유롭게 적어보세요..."
-                  }
+            <div className="relative">
+              <Textarea 
+                placeholder="오늘 되돌아보고 싶은 생각과 감정을 작성하세요..."
                   value={text}
                   onChange={e => setText(e.target.value)}
                   className="min-h-24 resize-none border-0 focus-visible:ring-0 text-base p-4 rounded-2xl"
@@ -145,41 +113,6 @@ export default function MeditationInput({
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="p-6">
-                <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="image-upload" />
-                <label htmlFor="image-upload">
-                  <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-smooth">
-                    {selectedFile ? (
-                      <div className="space-y-3">
-                        <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full mx-auto flex items-center justify-center">
-                          ✓
-                        </div>
-                        <p className="font-medium">{selectedFile.name}</p>
-                        <p className="text-sm text-muted-foreground">클릭하여 다른 이미지 선택</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Image className="w-12 h-12 text-muted-foreground mx-auto" />
-                        <p className="font-medium">이미지를 선택해주세요</p>
-                        <p className="text-sm text-muted-foreground">JPG, PNG 파일 지원</p>
-                      </div>
-                    )}
-                  </div>
-                </label>
-                {selectedFile && (
-                  <div className="mt-4 flex justify-center">
-                    <Button 
-                      onClick={handleGenerate} 
-                      disabled={!isValid}
-                      className="px-6"
-                    >
-                      명상 생성하기
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
