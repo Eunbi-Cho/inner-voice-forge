@@ -30,7 +30,7 @@ const Index = () => {
     setCurrentState('input');
   };
 
-  const handleGenerate = (data: any) => {
+  const handleGenerate = (data: { name: string; text: string; duration: number }) => {
     setInputData(data);
     setCurrentState('loading');
   };

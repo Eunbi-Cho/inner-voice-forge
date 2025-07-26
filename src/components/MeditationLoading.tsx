@@ -6,11 +6,7 @@ import { analyzeEmotion, generateMeditationScript } from "@/services/meditationS
 
 interface MeditationLoadingProps {
   onComplete: (meditationData: any) => void;
-  inputData: {
-    text: string;
-    duration: number;
-    image?: File;
-  };
+  inputData: { name: string; text: string; duration: number; image?: File; };
 }
 
 export default function MeditationLoading({ onComplete, inputData }: MeditationLoadingProps) {
@@ -33,10 +29,10 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
       action: "script"
     },
     { 
-      title: "음성 변환 준비", 
-      description: "intro, core, outro 파트를 준비하고 있습니다", 
+      title: "SRT 포맷 준비", 
+      description: "TTS를 위한 자막 형식으로 변환하고 있습니다", 
       icon: Volume2,
-      action: "tts"
+      action: "srt"
     },
     { 
       title: "최종 준비", 
@@ -68,11 +64,11 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
         
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 3단계: TTS 준비 (현재는 스킵)
+        // 3단계: SRT 포맷 준비
         setCurrentStep(2);
         setProgress(0);
         
-        // TTS 기능은 추후 구현
+        // SRT 포맷 처리 (이미 API에서 SRT 형식으로 받음)
         await new Promise(resolve => setTimeout(resolve, 1500));
         setProgress(100);
 
@@ -84,22 +80,13 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
         setProgress(100);
 
         // 최종 데이터 생성
-        const meditationData = {
-          script: {
-            intro: scriptResult.intro,
-            core: scriptResult.contents,
-            outro: scriptResult.outro
-          },
-          duration: inputData.duration,
-          emotionAnalysis: analysisResult,
-          audioUrls: {
-            intro: null,
-            core: null, 
-            outro: null
-          }
+        const finalData = {
+          emotionAnalysis,
+          meditation: scriptResult,
+          inputData
         };
-
-        setTimeout(() => onComplete(meditationData), 1000);
+        console.log('명상 생성 완료:', finalData);
+        onComplete(finalData);
 
       } catch (error) {
         console.error('명상 생성 중 오류:', error);
@@ -120,14 +107,21 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
   const handleUseDemo = () => {
     // 데모 데이터로 진행
     const demoData = {
-      script: {
-        intro: "깊게 숨을 들이마시고, 천천히 내쉬어보세요... 지금 이 순간, 당신의 마음이 필요로 하는 평온함을 찾아가는 시간입니다. 편안한 자세로 앉아주시고, 눈을 감아보세요.",
-        core: `${inputData.text}로 인해 마음이 복잡할 수 있습니다... 하지만 지금 이 순간, 모든 걱정을 잠시 내려놓고 숨에 집중해보세요. 들이마실 때마다 평온함이, 내쉴 때마다 긴장이 흘러나가는 것을 느껴보세요...`,
-        outro: "명상을 마무리하며, 이 평온한 느낌을 기억해두세요. 천천히 눈을 뜨시고, 새로운 마음으로 하루를 이어가세요. 언제든 이 평온함으로 돌아올 수 있습니다."
+      emotionAnalysis: "오늘 하루의 스트레스와 피로가 느껴지시네요. 깊은 호흡과 함께하는 이완 명상을 추천드립니다.",
+      meditation: {
+        srtContent: `1
+00:00:00,000 --> 00:00:05,000
+안녕하세요, ${inputData.name}님. 오늘 함께 명상하는 시간을 가져보겠습니다.
+
+2
+00:00:05,500 --> 00:00:12,000
+편안한 자세로 앉아서... 천천히 눈을 감아주세요.
+
+3
+00:00:15,000 --> 00:00:20,000
+지금 이 순간, 깊고 천천히 숨을 들이마셔보세요.`
       },
-      duration: inputData.duration,
-      emotionAnalysis: "현재 스트레스와 복잡한 감정 상태가 감지됩니다. 마음의 정리가 필요한 시점으로 보입니다.",
-      audioUrls: { intro: null, core: null, outro: null }
+      inputData
     };
     
     onComplete(demoData);
@@ -228,7 +222,7 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
           <div className="mt-8 p-4 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">
               {currentStep < 2 && "AI 분석 진행 중..."}
-              {currentStep === 2 && "오디오 준비 중..."}
+              {currentStep === 2 && "SRT 포맷 준비 중..."}
               {currentStep === 3 && "완료!"}
             </p>
           </div>
