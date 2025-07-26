@@ -6,17 +6,14 @@ import { ArrowLeft, Play, Pause, Square, FileText, Timer, Brain } from "lucide-r
 
 interface MeditationPlayerProps {
   meditationData: {
-    script: {
-      intro: string;
-      core: string;
-      outro: string;
+    emotionAnalysis: string;
+    meditation: {
+      textContent: string;
     };
-    duration: number;
-    emotionAnalysis?: string;
-    audioUrls?: {
-      intro: string | null;
-      core: string | null;
-      outro: string | null;
+    inputData: {
+      name: string;
+      text: string;
+      duration: number;
     };
   };
   onBack: () => void;
@@ -30,7 +27,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   const [showAnalysis, setShowAnalysis] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const totalDuration = meditationData.duration * 60; // 분을 초로 변환
+  const totalDuration = meditationData.inputData.duration * 60; // 분을 초로 변환
 
   // 페이즈별 시간 분배 (intro: 15%, core: 70%, outro: 15%)
   const phaseTimings = {
@@ -118,7 +115,27 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   };
 
   const getCurrentScript = () => {
-    return meditationData.script[currentPhase];
+    return meditationData.meditation.textContent;
+  };
+
+  const parseTextContent = (text: string) => {
+    const sections = text.split(/\*\*[가-힣\s]+\*\*/);
+    return {
+      intro: sections[1] || '도입부 내용이 없습니다.',
+      core: sections[2] || '본 명상 내용이 없습니다.',
+      outro: sections[3] || '마무리 내용이 없습니다.'
+    };
+  };
+
+  const parsedContent = parseTextContent(meditationData.meditation.textContent);
+
+  const getCurrentPhaseText = () => {
+    switch (currentPhase) {
+      case 'intro': return parsedContent.intro;
+      case 'core': return parsedContent.core;
+      case 'outro': return parsedContent.outro;
+      default: return '';
+    }
   };
 
   return (
@@ -155,7 +172,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
               나만의 명상
             </h1>
             <p className="text-lg text-muted-foreground">
-              {meditationData.duration}분 개인화된 명상 세션
+              {meditationData.inputData.duration}분 개인화된 명상 세션
             </p>
           </div>
         </div>
@@ -262,7 +279,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
               
               <div className="bg-muted/50 p-6 rounded-lg mb-8">
                 <p className="text-foreground leading-relaxed text-lg whitespace-pre-line">
-                  {getCurrentScript()}
+                  {getCurrentPhaseText()}
                 </p>
               </div>
               
@@ -275,16 +292,24 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
                   </div>
                 </summary>
                 <div className="mt-6 space-y-6">
-                  {Object.entries(meditationData.script).map(([phase, text]) => (
-                    <div key={phase} className="border border-border rounded-lg p-6">
-                      <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                        {phase === 'intro' && <span>🌱 도입부</span>}
-                        {phase === 'core' && <span>🧘‍♀️ 본 명상</span>}
-                        {phase === 'outro' && <span>🌟 마무리</span>}
-                      </h4>
-                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{text}</p>
-                    </div>
-                  ))}
+                  <div className="border border-border rounded-lg p-6">
+                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <span>🌱 도입부</span>
+                    </h4>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{parsedContent.intro}</p>
+                  </div>
+                  <div className="border border-border rounded-lg p-6">
+                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <span>🧘‍♀️ 본 명상</span>
+                    </h4>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{parsedContent.core}</p>
+                  </div>
+                  <div className="border border-border rounded-lg p-6">
+                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <span>🌟 마무리</span>
+                    </h4>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{parsedContent.outro}</p>
+                  </div>
                 </div>
               </details>
             </CardContent>
