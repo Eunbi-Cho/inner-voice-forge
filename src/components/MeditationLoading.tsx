@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, FileText, Volume2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Brain, FileText, Volume2, Sparkles, AlertCircle } from "lucide-react";
+import { analyzeEmotion, generateMeditationScript } from "@/services/meditationService";
 
 interface MeditationLoadingProps {
   onComplete: (meditationData: any) => void;
@@ -14,91 +16,159 @@ interface MeditationLoadingProps {
 export default function MeditationLoading({ onComplete, inputData }: MeditationLoadingProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [emotionAnalysis, setEmotionAnalysis] = useState<string>("");
 
   const steps = [
     { 
       title: "감정 분석 중", 
       description: "AI가 당신의 마음 상태를 분석하고 있습니다", 
       icon: Brain,
-      duration: 3000 
+      action: "emotion"
     },
     { 
       title: "명상 스크립트 생성", 
       description: "맞춤형 명상 가이드를 작성하고 있습니다", 
       icon: FileText,
-      duration: 4000 
+      action: "script"
     },
     { 
       title: "음성 변환 준비", 
       description: "intro, core, outro 파트를 준비하고 있습니다", 
       icon: Volume2,
-      duration: 2000 
+      action: "tts"
     },
     { 
       title: "최종 준비", 
       description: "당신만의 명상이 거의 완성되었습니다", 
       icon: Sparkles,
-      duration: 1000 
+      action: "complete"
     }
   ];
 
   useEffect(() => {
-    let stepTimer: NodeJS.Timeout;
-    let progressTimer: NodeJS.Timeout;
+    const runMeditationGeneration = async () => {
+      try {
+        // 1단계: 감정 분석
+        setCurrentStep(0);
+        setProgress(0);
+        
+        const analysisResult = await analyzeEmotion(inputData);
+        setEmotionAnalysis(analysisResult);
+        setProgress(100);
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const runStep = (stepIndex: number) => {
-      if (stepIndex >= steps.length) {
-        // 모든 단계 완료 - 가짜 명상 데이터 생성
-        const fakeMeditationData = {
+        // 2단계: 명상 스크립트 생성
+        setCurrentStep(1);
+        setProgress(0);
+        
+        const scriptResult = await generateMeditationScript(inputData);
+        setProgress(100);
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 3단계: TTS 준비 (현재는 스킵)
+        setCurrentStep(2);
+        setProgress(0);
+        
+        // TTS 기능은 추후 구현
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setProgress(100);
+
+        // 4단계: 완료
+        setCurrentStep(3);
+        setProgress(0);
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setProgress(100);
+
+        // 최종 데이터 생성
+        const meditationData = {
           script: {
-            intro: "깊게 숨을 들이마시고, 천천히 내쉬어보세요. 이제 당신만의 명상 시간이 시작됩니다.",
-            core: `${inputData.text}에 대한 마음의 평화를 찾아보겠습니다. 모든 걱정을 내려놓고 현재에 집중해보세요.`,
-            outro: "명상을 마무리하며, 새로운 에너지로 가득 찬 자신을 느껴보세요. 천천히 눈을 뜨셔도 좋습니다."
+            intro: scriptResult.intro,
+            core: scriptResult.contents,
+            outro: scriptResult.outro
           },
           duration: inputData.duration,
+          emotionAnalysis: analysisResult,
           audioUrls: {
-            intro: null, // TTS 연동 시 실제 URL
-            core: null,
+            intro: null,
+            core: null, 
             outro: null
           }
         };
-        
-        setTimeout(() => onComplete(fakeMeditationData), 500);
-        return;
+
+        setTimeout(() => onComplete(meditationData), 1000);
+
+      } catch (error) {
+        console.error('명상 생성 중 오류:', error);
+        setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
       }
-
-      setCurrentStep(stepIndex);
-      setProgress(0);
-
-      // 프로그레스 바 애니메이션
-      const step = steps[stepIndex];
-      const progressInterval = 50;
-      const progressIncrement = 100 / (step.duration / progressInterval);
-
-      progressTimer = setInterval(() => {
-        setProgress(prev => {
-          const newProgress = prev + progressIncrement;
-          if (newProgress >= 100) {
-            clearInterval(progressTimer);
-            return 100;
-          }
-          return newProgress;
-        });
-      }, progressInterval);
-
-      // 다음 단계로 이동
-      stepTimer = setTimeout(() => {
-        runStep(stepIndex + 1);
-      }, step.duration);
     };
 
-    runStep(0);
-
-    return () => {
-      clearTimeout(stepTimer);
-      clearInterval(progressTimer);
-    };
+    runMeditationGeneration();
   }, [inputData, onComplete]);
+
+  const handleRetry = () => {
+    setError(null);
+    setCurrentStep(0);
+    setProgress(0);
+    window.location.reload(); // 간단한 재시도
+  };
+
+  const handleUseDemo = () => {
+    // 데모 데이터로 진행
+    const demoData = {
+      script: {
+        intro: "깊게 숨을 들이마시고, 천천히 내쉬어보세요... 지금 이 순간, 당신의 마음이 필요로 하는 평온함을 찾아가는 시간입니다. 편안한 자세로 앉아주시고, 눈을 감아보세요.",
+        core: `${inputData.text}로 인해 마음이 복잡할 수 있습니다... 하지만 지금 이 순간, 모든 걱정을 잠시 내려놓고 숨에 집중해보세요. 들이마실 때마다 평온함이, 내쉴 때마다 긴장이 흘러나가는 것을 느껴보세요...`,
+        outro: "명상을 마무리하며, 이 평온한 느낌을 기억해두세요. 천천히 눈을 뜨시고, 새로운 마음으로 하루를 이어가세요. 언제든 이 평온함으로 돌아올 수 있습니다."
+      },
+      duration: inputData.duration,
+      emotionAnalysis: "현재 스트레스와 복잡한 감정 상태가 감지됩니다. 마음의 정리가 필요한 시점으로 보입니다.",
+      audioUrls: { intro: null, core: null, outro: null }
+    };
+    
+    onComplete(demoData);
+  };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <Card className="border shadow-notion max-w-md w-full animate-scale-in">
+          <CardContent className="p-12 text-center">
+            <div className="w-20 h-20 bg-destructive/10 rounded-full mx-auto mb-8 flex items-center justify-center">
+              <AlertCircle className="w-10 h-10 text-destructive" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-foreground mb-3">
+              오류가 발생했습니다
+            </h2>
+            <p className="text-muted-foreground mb-8 leading-relaxed">
+              {error}
+            </p>
+            
+            <div className="space-y-3">
+              <Button onClick={handleRetry} className="w-full">
+                다시 시도
+              </Button>
+              <Button variant="outline" onClick={handleUseDemo} className="w-full">
+                데모 버전으로 계속
+              </Button>
+            </div>
+            
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg text-left">
+              <p className="text-sm text-muted-foreground">
+                <strong>참고:</strong> OpenAI API 키가 필요합니다. 
+                실제 사용을 위해서는 API 키를 설정해주세요.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const currentStepData = steps[currentStep];
 
@@ -117,15 +187,24 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
           <h2 className="text-2xl font-bold text-foreground mb-3">
             {currentStepData?.title}
           </h2>
-          <p className="text-muted-foreground mb-12 leading-relaxed">
+          <p className="text-muted-foreground mb-8 leading-relaxed">
             {currentStepData?.description}
           </p>
+
+          {/* 감정 분석 결과 표시 */}
+          {emotionAnalysis && currentStep > 0 && (
+            <div className="mb-8 p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-foreground">
+                <strong>감정 분석:</strong> {emotionAnalysis}
+              </p>
+            </div>
+          )}
 
           {/* 프로그레스 바 */}
           <div className="space-y-6">
             <div className="w-full bg-muted rounded-full h-2">
               <div 
-                className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
+                className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -145,10 +224,12 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
             </div>
           </div>
 
-          {/* 예상 시간 */}
+          {/* 현재 진행 상태 */}
           <div className="mt-8 p-4 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">
-              예상 완료 시간: {Math.ceil((steps.length - currentStep) * 2.5)}초
+              {currentStep < 2 && "AI 분석 진행 중..."}
+              {currentStep === 2 && "오디오 준비 중..."}
+              {currentStep === 3 && "완료!"}
             </p>
           </div>
         </CardContent>

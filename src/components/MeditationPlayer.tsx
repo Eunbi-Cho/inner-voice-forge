@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, Pause, Square, FileText, Timer } from "lucide-react";
+import { ArrowLeft, Play, Pause, Square, FileText, Timer, Brain } from "lucide-react";
 
 interface MeditationPlayerProps {
   meditationData: {
@@ -12,6 +12,7 @@ interface MeditationPlayerProps {
       outro: string;
     };
     duration: number;
+    emotionAnalysis?: string;
     audioUrls?: {
       intro: string | null;
       core: string | null;
@@ -26,15 +27,16 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   const [currentTime, setCurrentTime] = useState(0);
   const [currentPhase, setCurrentPhase] = useState<'intro' | 'core' | 'outro'>('intro');
   const [showScript, setShowScript] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const totalDuration = meditationData.duration * 60; // 분을 초로 변환
 
-  // 페이즈별 시간 분배 (intro: 10%, core: 80%, outro: 10%)
+  // 페이즈별 시간 분배 (intro: 15%, core: 70%, outro: 15%)
   const phaseTimings = {
-    intro: totalDuration * 0.1,
-    core: totalDuration * 0.8,
-    outro: totalDuration * 0.1
+    intro: totalDuration * 0.15,
+    core: totalDuration * 0.7,
+    outro: totalDuration * 0.15
   };
 
   const getCurrentPhase = (time: number) => {
@@ -108,7 +110,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
 
   const getPhaseText = () => {
     switch (currentPhase) {
-      case 'intro': return '시작';
+      case 'intro': return '도입';
       case 'core': return '명상';
       case 'outro': return '마무리';
       default: return '';
@@ -129,10 +131,23 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
               <ArrowLeft className="w-4 h-4" />
               돌아가기
             </Button>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Timer className="w-3 h-3" />
-              {getPhaseText()} 단계
-            </Badge>
+            <div className="flex items-center gap-2">
+              {meditationData.emotionAnalysis && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowAnalysis(!showAnalysis)}
+                  className="flex items-center gap-1"
+                >
+                  <Brain className="w-3 h-3" />
+                  분석결과
+                </Button>
+              )}
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Timer className="w-3 h-3" />
+                {getPhaseText()} 단계
+              </Badge>
+            </div>
           </div>
           
           <div className="text-center">
@@ -140,10 +155,27 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
               나만의 명상
             </h1>
             <p className="text-lg text-muted-foreground">
-              {meditationData.duration}분 명상 세션
+              {meditationData.duration}분 개인화된 명상 세션
             </p>
           </div>
         </div>
+
+        {/* 감정 분석 결과 */}
+        {showAnalysis && meditationData.emotionAnalysis && (
+          <Card className="border shadow-notion mb-8 animate-fade-in">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Brain className="w-5 h-5" />
+                감정 분석 결과
+              </h3>
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <p className="text-foreground leading-relaxed">
+                  {meditationData.emotionAnalysis}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* 메인 플레이어 */}
         <Card className="border shadow-notion mb-8 animate-fade-in">
@@ -183,7 +215,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
-                  {phase === 'intro' && '시작'}
+                  {phase === 'intro' && '도입'}
                   {phase === 'core' && '명상'}
                   {phase === 'outro' && '마무리'}
                 </div>
@@ -229,7 +261,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
               </h3>
               
               <div className="bg-muted/50 p-6 rounded-lg mb-8">
-                <p className="text-foreground leading-relaxed text-lg">
+                <p className="text-foreground leading-relaxed text-lg whitespace-pre-line">
                   {getCurrentScript()}
                 </p>
               </div>
@@ -246,11 +278,11 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
                   {Object.entries(meditationData.script).map(([phase, text]) => (
                     <div key={phase} className="border border-border rounded-lg p-6">
                       <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                        {phase === 'intro' && <span>🌅 시작</span>}
-                        {phase === 'core' && <span>🧘‍♀️ 명상</span>}
+                        {phase === 'intro' && <span>🌱 도입부</span>}
+                        {phase === 'core' && <span>🧘‍♀️ 본 명상</span>}
                         {phase === 'outro' && <span>🌟 마무리</span>}
                       </h4>
-                      <p className="text-muted-foreground leading-relaxed">{text}</p>
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{text}</p>
                     </div>
                   ))}
                 </div>
