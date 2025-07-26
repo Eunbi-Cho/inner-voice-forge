@@ -81,7 +81,9 @@ The user will provide three pieces of information:
   - "알아차림" → "무엇이 일어나고 있는지 알아보기"
   - "수용" → "있는 그대로 받아들이기"
   - "놓아줌" → "꽉 잡고 있던 것을 살짝 내려놓기"
-- Include natural pauses indicated by "..." or breathing cues
+- **Use completely natural Korean speech patterns**
+- **Never use parentheses, brackets, or technical notation**
+- Express pauses and timing through natural language only
 - Use inclusive and non-judgmental language
 - Avoid overly clinical or technical terms
 - Include gentle encouragement and validation
@@ -96,35 +98,46 @@ Tailor the meditation type and language based on detected emotions:
 - **Joy/Gratitude**: Enhance and savor positive emotions
 - **Confusion**: Provide clarity through mindful observation
 
-## Output Format: Natural Text Script
+## Output Format: Natural Korean Text Script
 
-**Output the meditation guide as a natural, flowing text script suitable for reading aloud.**
+**Output the meditation guide as completely natural, flowing Korean text without any technical formatting.**
 
 ### Text Format Guidelines:
-- Write in natural, conversational Korean prose
-- Use paragraph breaks for natural pauses and transitions
-- Include pause indicators in parentheses when needed: (3초 호흡), (잠시 멈춤)
-- Mark sections clearly with simple headers: **도입부**, **본 명상**, **마무리**
-- Use ellipses (...) for natural speech pauses
-- Include breathing cues naturally within sentences
+- Write in natural, conversational Korean prose only
+- **NO parentheses or brackets of any kind**
+- Use natural language to indicate pauses: "잠시 쉬어보겠습니다", "천천히 호흡해보세요"
+- Mark sections with simple Korean headers: **도입부**, **본 명상**, **마무리**
+- Use ellipses (...) sparingly and naturally
+- Include breathing cues as natural speech: "이제 깊게 숨을 들이마시고... 천천히 내쉬어보세요"
 
-### Script Structure:
+### Script Structure Example:
 \`\`\`
 **도입부**
-안녕하세요, [이름]님. 오늘 함께 명상하는 시간을 가져보겠습니다...
+안녕하세요, 지민님. 오늘 하루 정말 고생 많으셨어요. 지금은 모든 걸 잠시 내려놓고 저와 함께 편안한 시간을 보내보겠습니다.
 
 **본 명상**
-이제 천천히 눈을 감고... (3초 호흡)...
+이제 천천히 눈을 감고 편안하게 앉아보세요. 깊게 숨을 들이마시면서...
 
 **마무리**
-천천히 눈을 뜨시면서...
+천천히 눈을 뜨면서 이 평온한 마음을 기억해보세요.
 \`\`\`
 
-### Pacing Guidelines:
-- **Natural speaking pace**: Write as if speaking at 120-150 words per minute
-- **Breathing pauses**: Indicate with (호흡) or (3초 호흡)
-- **Meditation silences**: Clearly mark longer pauses (10초 동안 조용히)
-- **Smooth transitions**: Use connecting words and natural flow between sections
+### Natural Pause Expressions:
+Instead of brackets, use natural Korean expressions:
+- "잠시 멈춰서 느껴보겠습니다"
+- "천천히 세 번 호흡해보세요"
+- "조금 더 깊게 느껴보는 시간을 가져보겠습니다"
+- "이제 잠시 조용히 있어보겠습니다"
+- "몇 번 더 깊게 숨을 쉬어보세요"
+- "천천히 시간을 가지고"
+- "자연스럽게 호흡하면서"
+
+### SRT Best Practices:
+- Keep each subtitle to 1-2 sentences maximum
+- Ensure smooth flow between timestamps
+- No overlapping time codes
+- Include pause indicators in brackets when needed
+- Use natural sentence breaks for subtitle divisions
 
 ## Content Length Guidelines:
 
@@ -146,7 +159,7 @@ Tailor the meditation type and language based on detected emotions:
 ## Content Adaptation by Duration:
 - **10분**: Focus on 1-2 core techniques, keep instructions simple and direct
 - **20분**: Include 2-3 meditation techniques with smooth transitions, allow for deeper exploration
-- **30분**: Create a comprehensive journey with multiple phases, deeper guidance, and extended silent periods
+- **30분**: Create a comprehensive journey with multiple phases, deeper guided, and extended silent periods
 
 ## Session Customization:
 Consider these factors from the journal entry when creating the guide:
