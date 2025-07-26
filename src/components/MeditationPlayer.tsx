@@ -119,11 +119,36 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   };
 
   const parseTextContent = (text: string) => {
-    const sections = text.split(/\*\*[가-힣\s]+\*\*/);
+    if (!text) {
+      return {
+        intro: '도입부 내용이 없습니다.',
+        core: '본 명상 내용이 없습니다.',
+        outro: '마무리 내용이 없습니다.'
+      };
+    }
+
+    // Try to split by **headers** first
+    let sections = text.split(/\*\*[^*]+\*\*/);
+    
+    // If that doesn't work, try splitting by common Korean meditation section words
+    if (sections.length < 4) {
+      sections = text.split(/(도입부|본 명상|마무리)/);
+    }
+    
+    // If still no sections, treat the whole text as core content
+    if (sections.length < 4) {
+      const thirdLength = Math.floor(text.length / 3);
+      return {
+        intro: text.substring(0, thirdLength) || '도입부 내용이 없습니다.',
+        core: text.substring(thirdLength, thirdLength * 2) || '본 명상 내용이 없습니다.',
+        outro: text.substring(thirdLength * 2) || '마무리 내용이 없습니다.'
+      };
+    }
+    
     return {
-      intro: sections[1] || '도입부 내용이 없습니다.',
-      core: sections[2] || '본 명상 내용이 없습니다.',
-      outro: sections[3] || '마무리 내용이 없습니다.'
+      intro: sections[1]?.trim() || '도입부 내용이 없습니다.',
+      core: sections[2]?.trim() || '본 명상 내용이 없습니다.',
+      outro: sections[3]?.trim() || '마무리 내용이 없습니다.'
     };
   };
 
