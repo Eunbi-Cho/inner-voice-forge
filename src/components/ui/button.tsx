@@ -5,20 +5,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-notion focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-notion hover:shadow-notion-hover",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-subtle hover:shadow-medium",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border border-border bg-transparent hover:bg-primary hover:text-primary-foreground hover:border-primary",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        notion: "bg-background text-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-notion shadow-notion hover:shadow-notion-hover",
+          "bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent/50 hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline hover:text-accent",
+        accent: "bg-accent text-accent-foreground hover:bg-accent/90 shadow-subtle hover:shadow-medium",
       },
       size: {
         default: "h-10 px-4 py-2",

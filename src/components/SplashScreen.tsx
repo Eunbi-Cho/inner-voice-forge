@@ -65,7 +65,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             {features.map((feature, index) => (
               <div 
                 key={index}
-                className="bg-card border border-border rounded-lg p-8 shadow-notion hover:shadow-notion-hover transition-notion animate-fade-in"
+                className="bg-card border border-border rounded-xl p-8 shadow-subtle hover:shadow-medium transition-smooth animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <feature.icon className="w-8 h-8 text-foreground mb-4" />

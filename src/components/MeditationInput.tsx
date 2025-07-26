@@ -69,7 +69,7 @@ export default function MeditationInput({ onGenerate }: MeditationInputProps) {
               {inputTypes.map((type) => (
                 <Button
                   key={type.type}
-                  variant={inputType === type.type ? "default" : "notion"}
+                  variant={inputType === type.type ? "default" : "outline"}
                   className="flex flex-col gap-3 h-auto py-6"
                   onClick={() => setInputType(type.type)}
                 >
@@ -120,7 +120,7 @@ export default function MeditationInput({ onGenerate }: MeditationInputProps) {
                   id="image-upload"
                 />
                 <label htmlFor="image-upload">
-                  <div className="border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer hover:border-primary hover:bg-accent/50 transition-notion">
+                  <div className="border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-smooth">
                     {selectedFile ? (
                       <div className="space-y-3">
                         <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full mx-auto flex items-center justify-center">
@@ -156,7 +156,7 @@ export default function MeditationInput({ onGenerate }: MeditationInputProps) {
               {durations.map((duration) => (
                 <Button
                   key={duration.value}
-                  variant={selectedDuration === duration.value ? "default" : "notion"}
+                  variant={selectedDuration === duration.value ? "default" : "outline"}
                   className="flex flex-col gap-2 h-auto py-6"
                   onClick={() => setSelectedDuration(duration.value)}
                 >

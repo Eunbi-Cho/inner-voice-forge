@@ -268,7 +268,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
               
               {/* 전체 스크립트 미리보기 */}
               <details className="group">
-                <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-notion list-none">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-primary transition-smooth list-none">
                   <div className="flex items-center gap-2">
                     <span>전체 스크립트 보기</span>
                     <span className="group-open:rotate-180 transition-transform">▼</span>
