@@ -1,5 +1,5 @@
 // OpenAI API 서비스
-const OPENAI_API_KEY = 'your-openai-api-key-here'; // 실제 사용시 환경변수나 사용자 입력으로 대체
+const OPENAI_API_KEY = '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';
 
 // 명상 가이드 시스템 프롬프트
 const MEDITATION_SYSTEM_PROMPT = `# Personal Meditation Guide System Prompt
@@ -96,7 +96,7 @@ interface MeditationScript {
 
 // 감정 분석 함수
 export async function analyzeEmotion(input: MeditationInput): Promise<string> {
-  if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
+  if (!OPENAI_API_KEY || OPENAI_API_KEY.length < 10) {
     throw new Error('OpenAI API 키가 필요합니다. API 키를 설정해주세요.');
   }
 
@@ -141,7 +141,7 @@ export async function analyzeEmotion(input: MeditationInput): Promise<string> {
 
 // 명상 스크립트 생성 함수
 export async function generateMeditationScript(input: MeditationInput): Promise<MeditationScript> {
-  if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
+  if (!OPENAI_API_KEY || OPENAI_API_KEY.length < 10) {
     throw new Error('OpenAI API 키가 필요합니다. API 키를 설정해주세요.');
   }
 
