@@ -29,10 +29,10 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
       action: "script"
     },
     { 
-      title: "SRT 포맷 준비", 
-      description: "TTS를 위한 자막 형식으로 변환하고 있습니다", 
+      title: "텍스트 포맷 준비", 
+      description: "TTS를 위한 자연스러운 스크립트로 변환하고 있습니다", 
       icon: Volume2,
-      action: "srt"
+      action: "text"
     },
     { 
       title: "최종 준비", 
@@ -64,11 +64,11 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
         
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 3단계: SRT 포맷 준비
+        // 3단계: 텍스트 포맷 준비
         setCurrentStep(2);
         setProgress(0);
         
-        // SRT 포맷 처리 (이미 API에서 SRT 형식으로 받음)
+        // 텍스트 포맷 처리 (이미 API에서 텍스트 형식으로 받음)
         await new Promise(resolve => setTimeout(resolve, 1500));
         setProgress(100);
 
@@ -109,17 +109,16 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
     const demoData = {
       emotionAnalysis: "오늘 하루의 스트레스와 피로가 느껴지시네요. 깊은 호흡과 함께하는 이완 명상을 추천드립니다.",
       meditation: {
-        srtContent: `1
-00:00:00,000 --> 00:00:05,000
-안녕하세요, ${inputData.name}님. 오늘 함께 명상하는 시간을 가져보겠습니다.
+        textContent: `**도입부**
+안녕하세요, ${inputData.name}님. 오늘 함께 명상하는 시간을 가져보겠습니다... (3초 호흡)
 
-2
-00:00:05,500 --> 00:00:12,000
-편안한 자세로 앉아서... 천천히 눈을 감아주세요.
+편안한 자세로 앉아서... 천천히 눈을 감아주세요. (호흡)
 
-3
-00:00:15,000 --> 00:00:20,000
-지금 이 순간, 깊고 천천히 숨을 들이마셔보세요.`
+**본 명상**
+지금 이 순간, 깊고 천천히 숨을 들이마셔보세요... (10초 동안 조용히)
+
+**마무리**
+천천히 눈을 뜨시면서... 오늘 명상을 마무리하겠습니다.`
       },
       inputData
     };
@@ -224,7 +223,7 @@ export default function MeditationLoading({ onComplete, inputData }: MeditationL
           <div className="mt-8 p-4 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">
               {currentStep < 2 && "AI 분석 진행 중..."}
-              {currentStep === 2 && "SRT 포맷 준비 중..."}
+              {currentStep === 2 && "텍스트 포맷 준비 중..."}
               {currentStep === 3 && "완료!"}
             </p>
           </div>
