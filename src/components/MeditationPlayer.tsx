@@ -60,10 +60,14 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   // OpenAI TTS로 오디오 생성
   const generateAudioForPhase = async (phase: 'intro' | 'core' | 'outro'): Promise<string | null> => {
     const phaseText = getCurrentPhaseText(phase);
-    if (!phaseText) return null;
+    if (!phaseText) {
+      console.error(`${phase} 텍스트가 비어있습니다`);
+      return null;
+    }
 
     try {
-      console.log(`${phase} 오디오 생성 중...`);
+      console.log(`${phase} 오디오 생성 시작, 텍스트 길이:`, phaseText.length);
+      console.log('Supabase functions invoke 호출 중...');
       
       const { data, error } = await supabase.functions.invoke('generate-meditation', {
         body: {
@@ -72,22 +76,26 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
         }
       });
 
+      console.log('Supabase functions 응답:', { data, error });
+
       if (error) {
         console.error(`${phase} TTS 생성 오류:`, error);
         return null;
       }
 
       if (data?.audioContent) {
+        console.log(`${phase} 오디오 데이터 수신, 크기:`, data.audioContent.length);
         // Base64를 Blob으로 변환하여 오디오 URL 생성
         const audioBlob = new Blob([
           Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))
         ], { type: 'audio/mpeg' });
         
         const audioUrl = URL.createObjectURL(audioBlob);
-        console.log(`${phase} 오디오 생성 완료`);
+        console.log(`${phase} 오디오 URL 생성 완료:`, audioUrl);
         return audioUrl;
       }
 
+      console.error(`${phase} 오디오 데이터 없음`);
       return null;
     } catch (error) {
       console.error(`${phase} TTS 생성 실패:`, error);
