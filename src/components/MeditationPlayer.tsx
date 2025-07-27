@@ -67,6 +67,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
           audioRef.current.src = audioUrls[phaseToPlay]!;
           audioRef.current.play();
         }
+        setIsLoadingTTS(false);
         return;
       }
 
@@ -77,7 +78,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
         
         if (audioRef.current) {
           audioRef.current.src = audioUrl;
-          audioRef.current.play();
+          await audioRef.current.play();
         }
       }
     } catch (error) {
