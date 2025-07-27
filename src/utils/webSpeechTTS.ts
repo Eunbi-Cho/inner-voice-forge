@@ -74,7 +74,7 @@ export class WebSpeechTTS {
         this.currentUtterance.voice = bestVoice;
       }
       
-      this.currentUtterance.rate = options.rate || 0.8; // 조금 느리게
+      this.currentUtterance.rate = options.rate || 1.0; // 정상 속도
       this.currentUtterance.pitch = options.pitch || 1;
       this.currentUtterance.volume = options.volume || 0.9;
       this.currentUtterance.lang = options.lang || 'ko-KR';
