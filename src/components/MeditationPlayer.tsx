@@ -101,35 +101,47 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
     } else {
       // 재생 시작
       setIsPlaying(true);
-      await playCurrentPhase();
       
-      timerRef.current = setInterval(() => {
-        setCurrentTime(prev => {
-          const newTime = prev + 1;
-          const newPhase = getCurrentPhase(newTime);
-          
-          if (newPhase !== currentPhase) {
-            setCurrentPhase(newPhase);
-            // 새로운 페이즈 오디오 재생
-            setTimeout(() => playCurrentPhase(newPhase), 100);
-          }
-          
-          if (newTime >= totalDuration) {
-            // 명상 완료
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
+      // TTS 로딩 표시
+      setIsLoadingTTS(true);
+      
+      try {
+        await playCurrentPhase();
+        
+        // 타이머 시작
+        timerRef.current = setInterval(() => {
+          setCurrentTime(prev => {
+            const newTime = prev + 1;
+            const newPhase = getCurrentPhase(newTime);
+            
+            if (newPhase !== currentPhase) {
+              setCurrentPhase(newPhase);
+              // 새로운 페이즈 오디오 재생
+              setTimeout(() => playCurrentPhase(newPhase), 100);
             }
-            if (audioRef.current) {
-              audioRef.current.pause();
+            
+            if (newTime >= totalDuration) {
+              // 명상 완료
+              if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+              }
+              if (audioRef.current) {
+                audioRef.current.pause();
+              }
+              setIsPlaying(false);
+              return totalDuration;
             }
-            setIsPlaying(false);
-            return totalDuration;
-          }
-          
-          return newTime;
-        });
-      }, 1000);
+            
+            return newTime;
+          });
+        }, 1000);
+      } catch (error) {
+        console.error('재생 실패:', error);
+        setIsPlaying(false);
+      } finally {
+        setIsLoadingTTS(false);
+      }
     }
   };
 
@@ -332,9 +344,16 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
               <Button
                 size="lg"
                 onClick={handlePlayPause}
+                disabled={isLoadingTTS}
                 className="w-16 h-16 rounded-full text-xl"
               >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                {isLoadingTTS ? (
+                  <div className="w-6 h-6 border-2 border-current border-t-transparent animate-spin rounded-full" />
+                ) : isPlaying ? (
+                  <Pause className="w-6 h-6" />
+                ) : (
+                  <Play className="w-6 h-6" />
+                )}
               </Button>
               <Button
                 variant="outline"

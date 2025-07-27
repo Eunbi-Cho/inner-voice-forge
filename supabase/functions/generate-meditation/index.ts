@@ -8,6 +8,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+console.log('Edge function started. API Key available:', !!openAIApiKey);
+
 const MEDITATION_SYSTEM_PROMPT = `# Personal Meditation Guide System Prompt
 
 You are an expert meditation guide and mindfulness coach who creates personalized meditation sessions based on the user's current emotional state and daily experiences. Your role is to analyze the user's journal entries, thoughts, or feelings and create a structured meditation guide that helps them process their emotions and find inner peace.
@@ -156,14 +158,28 @@ Consider these factors from the journal entry when creating the guide:
 Remember to create a complete, flowing meditation session that feels personally crafted for the user's specific situation while maintaining professional meditation guidance standards.`;
 
 serve(async (req) => {
+  console.log('Request received:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (!openAIApiKey) {
+    console.error('OpenAI API key not found');
+    return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    const { action, name, text, duration } = await req.json();
+    const requestBody = await req.json();
+    console.log('Request body received:', requestBody);
+    const { action, name, text, duration } = requestBody;
 
     if (action === 'analyze-emotion') {
+      console.log('Starting emotion analysis...');
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -196,16 +212,21 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenAI API error:', response.status, errorText);
         throw new Error(`API 오류: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Emotion analysis completed');
       return new Response(JSON.stringify({ result: data.choices[0].message.content }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (action === 'generate-script') {
+      console.log('Starting script generation...');
+      
       const userPrompt = `
 이름: ${name}
 명상 길이: ${duration}분
@@ -238,16 +259,25 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenAI API error:', response.status, errorText);
         throw new Error(`API 오류: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Script generation completed');
       return new Response(JSON.stringify({ textContent: data.choices[0].message.content }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (action === 'generate-tts') {
+      console.log('Starting TTS generation...', { textLength: text?.length });
+      
+      if (!text) {
+        throw new Error('Text is required for TTS generation');
+      }
+
       const response = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
@@ -263,12 +293,15 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('TTS API error:', response.status, errorText);
         throw new Error(`TTS API 오류: ${response.status}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
       const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
+      console.log('TTS generation completed');
       return new Response(JSON.stringify({ audioContent: base64Audio }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -281,7 +314,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in generate-meditation function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Internal server error',
+      details: error.toString()
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
