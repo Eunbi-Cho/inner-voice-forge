@@ -13,13 +13,7 @@ const Index = () => {
   const [meditationData, setMeditationData] = useState<any>(null);
 
   const handleSplashComplete = () => {
-    // API 키가 이미 설정되어 있는지 확인
-    const existingApiKey = localStorage.getItem('openai_api_key');
-    if (existingApiKey) {
-      setCurrentState('input');
-    } else {
-      setCurrentState('apiKey');
-    }
+    setCurrentState('input');
   };
 
   const handleApiKeySave = (apiKey: string) => {
@@ -56,15 +50,9 @@ const Index = () => {
         <SplashScreen onComplete={handleSplashComplete} />
       )}
 
-      {currentState === 'apiKey' && (
-        <ApiKeySettings 
-          onSave={handleApiKeySave} 
-          onSkip={handleApiKeySkip}
-        />
-      )}
       
       {currentState === 'input' && (
-        <MeditationInput onGenerate={handleGenerate} onGoToSettings={handleGoToSettings} />
+        <MeditationInput onGenerate={handleGenerate} />
       )}
       
       {currentState === 'loading' && inputData && (
