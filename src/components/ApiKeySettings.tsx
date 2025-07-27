@@ -21,8 +21,8 @@ export default function ApiKeySettings({ onSave, onSkip }: ApiKeySettingsProps) 
       return;
     }
 
-    if (!apiKey.startsWith('sk-')) {
-      setError('올바른 OpenAI API 키 형식이 아닙니다.');
+    if (!apiKey.startsWith('sk-') || apiKey.startsWith('sk-svcacct-')) {
+      setError('올바른 OpenAI API 키 형식이 아닙니다. "sk-"로 시작하는 개인 API 키를 입력해주세요.');
       return;
     }
 
