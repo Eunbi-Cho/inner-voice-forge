@@ -132,7 +132,12 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   };
 
   const handlePlayPause = async () => {
+    console.log('=== 재생/일시정지 버튼 클릭 ===');
+    console.log('현재 재생 상태:', isPlaying);
+    console.log('현재 단계:', currentPhase);
+    
     if (isPlaying) {
+      console.log('일시정지 실행');
       // 일시정지
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -143,11 +148,14 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
       }
       setIsPlaying(false);
     } else {
+      console.log('재생 시작');
       // 재생 시작
       setIsPlaying(true);
       
       try {
+        console.log('playCurrentPhase 호출');
         await playCurrentPhase();
+        console.log('playCurrentPhase 완료, 타이머 시작');
         
         // 타이머 시작
         timerRef.current = setInterval(() => {
