@@ -1,1 +1,4 @@
 project_id = "jyuviidkhpzmwfprqwpp"
+
+[functions.generate-meditation]
+verify_jwt = false
