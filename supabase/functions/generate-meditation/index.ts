@@ -205,9 +205,28 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'tts-1',
+          model: 'gpt-4o-mini-tts',
           input: text,
           voice: 'alloy',
+          instructions: `# Meditation Guide Voice Prompt
+
+## Voice Affect: 
+Gentle and soothing; calm with subtle variations in tone to maintain warmth and engagement. Soft, nurturing quality that creates a safe and peaceful atmosphere.
+
+## Tone: 
+Compassionate and understanding, conveying warmth, acceptance, and gentle guidance. Reassuring and non-judgmental, like a trusted friend offering comfort.
+
+## Pacing: 
+- **Slow, deliberate delivery** during breathing instructions and core meditation guidance to allow natural rhythm
+- **Gentle pauses** between instructions to give time for processing and settling
+- **Even slower, whisper-like pace** during deep relaxation or visualization segments
+- **Natural conversational pace** during introductions and closing reflections
+
+## Emotion: 
+Deeply caring, present, and grounded. Radiating calm confidence and peaceful energy. Emotionally available and empathetic.
+
+## Personality: 
+Warm, approachable, and genuinely caring. Like a wise, gentle mentor who truly understands`,
           response_format: 'mp3'
         }),
       });
