@@ -100,8 +100,9 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
       setIsPlaying(false);
     } else {
       // 재생 시작
-      await playCurrentPhase();
       setIsPlaying(true);
+      await playCurrentPhase();
+      
       timerRef.current = setInterval(() => {
         setCurrentTime(prev => {
           const newTime = prev + 1;
@@ -110,7 +111,7 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
           if (newPhase !== currentPhase) {
             setCurrentPhase(newPhase);
             // 새로운 페이즈 오디오 재생
-            playCurrentPhase(newPhase);
+            setTimeout(() => playCurrentPhase(newPhase), 100);
           }
           
           if (newTime >= totalDuration) {

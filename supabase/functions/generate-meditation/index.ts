@@ -266,9 +266,11 @@ serve(async (req) => {
         throw new Error(`TTS API 오류: ${response.status}`);
       }
 
-      const audioBlob = await response.blob();
-      return new Response(audioBlob, {
-        headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg' },
+      const arrayBuffer = await response.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      return new Response(JSON.stringify({ audioContent: base64Audio }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 

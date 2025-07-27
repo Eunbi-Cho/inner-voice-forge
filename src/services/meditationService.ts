@@ -83,8 +83,14 @@ export async function generateTTS(text: string): Promise<string | null> {
       return null;
     }
 
-    // Edge function에서 Blob을 직접 반환하므로 URL 생성
-    const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+    // base64 오디오 데이터를 Blob으로 변환
+    const binaryString = atob(data.audioContent);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
     const audioUrl = URL.createObjectURL(audioBlob);
     
     console.log('TTS 생성 완료');
