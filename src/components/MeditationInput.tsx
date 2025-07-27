@@ -4,13 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { Clock, Settings } from "lucide-react";
 
 interface MeditationInputProps {
   onGenerate: (data: { name: string; text: string; duration: number }) => void;
+  onGoToSettings?: () => void;
 }
 
-export default function MeditationInput({ onGenerate }: MeditationInputProps) {
+export default function MeditationInput({ onGenerate, onGoToSettings }: MeditationInputProps) {
   const [selectedDuration, setSelectedDuration] = useState(10);
   const [name, setName] = useState("");
   const [text, setText] = useState("");
@@ -49,7 +50,18 @@ export default function MeditationInput({ onGenerate }: MeditationInputProps) {
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-6 py-12">
         {/* 헤더 */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 relative">
+          {onGoToSettings && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onGoToSettings}
+              className="absolute right-0 top-0"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              API 키 설정
+            </Button>
+          )}
           <h1 className="text-4xl font-bold text-foreground mb-3 tracking-tight">
             명상 만들기
           </h1>

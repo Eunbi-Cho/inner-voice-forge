@@ -46,6 +46,10 @@ const Index = () => {
     setMeditationData(null);
   };
 
+  const handleGoToSettings = () => {
+    setCurrentState('apiKey');
+  };
+
   return (
     <div className="min-h-screen">
       {currentState === 'splash' && (
@@ -60,7 +64,7 @@ const Index = () => {
       )}
       
       {currentState === 'input' && (
-        <MeditationInput onGenerate={handleGenerate} />
+        <MeditationInput onGenerate={handleGenerate} onGoToSettings={handleGoToSettings} />
       )}
       
       {currentState === 'loading' && inputData && (
