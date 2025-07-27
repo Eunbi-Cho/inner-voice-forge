@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, Pause, Square, FileText, Timer, Brain, Volume2 } from "lucide-react";
 import { generateTTS } from "@/services/meditationService";
+import { webTTS } from "@/utils/webSpeechTTS";
 
 interface MeditationPlayerProps {
   meditationData: {
@@ -61,26 +62,20 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
     try {
       setIsLoadingTTS(true);
       
-      // 이미 생성된 오디오가 있으면 재사용
-      if (audioUrls[phaseToPlay]) {
-        if (audioRef.current) {
-          audioRef.current.src = audioUrls[phaseToPlay]!;
-          audioRef.current.play();
-        }
-        setIsLoadingTTS(false);
-        return;
-      }
-
-      // TTS 생성
-      const audioUrl = await generateTTS(phaseText);
-      if (audioUrl) {
-        setAudioUrls(prev => ({ ...prev, [phaseToPlay]: audioUrl }));
-        
-        if (audioRef.current) {
-          audioRef.current.src = audioUrl;
-          await audioRef.current.play();
-        }
-      }
+      // Web Speech API 사용
+      console.log(`${phaseToPlay} 단계 TTS 시작:`, phaseText.substring(0, 50));
+      
+      // 기존 TTS 중지
+      webTTS.stop();
+      
+      // 새로운 텍스트 재생
+      await webTTS.speak(phaseText, {
+        rate: 0.7,  // 명상에 적합한 느린 속도
+        pitch: 1.0,
+        volume: 0.9
+      });
+      
+      console.log(`${phaseToPlay} 단계 TTS 완료`);
     } catch (error) {
       console.error('TTS 재생 실패:', error);
     } finally {
@@ -95,21 +90,19 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      // Web TTS 일시정지
+      webTTS.pause();
       setIsPlaying(false);
     } else {
-      // 재생 시작
-      setIsPlaying(true);
+      // 재생 시작 또는 재개
+      const ttsState = webTTS.getPlayingState();
       
-      // TTS 로딩 표시
-      setIsLoadingTTS(true);
-      
-      try {
-        await playCurrentPhase();
+      if (ttsState.isPaused) {
+        // 일시정지 상태에서 재개
+        webTTS.resume();
+        setIsPlaying(true);
         
-        // 타이머 시작
+        // 타이머 재시작
         timerRef.current = setInterval(() => {
           setCurrentTime(prev => {
             const newTime = prev + 1;
@@ -117,19 +110,15 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
             
             if (newPhase !== currentPhase) {
               setCurrentPhase(newPhase);
-              // 새로운 페이즈 오디오 재생
               setTimeout(() => playCurrentPhase(newPhase), 100);
             }
             
             if (newTime >= totalDuration) {
-              // 명상 완료
               if (timerRef.current) {
                 clearInterval(timerRef.current);
                 timerRef.current = null;
               }
-              if (audioRef.current) {
-                audioRef.current.pause();
-              }
+              webTTS.stop();
               setIsPlaying(false);
               return totalDuration;
             }
@@ -137,11 +126,44 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
             return newTime;
           });
         }, 1000);
-      } catch (error) {
-        console.error('재생 실패:', error);
-        setIsPlaying(false);
-      } finally {
-        setIsLoadingTTS(false);
+      } else {
+        // 새로 시작
+        setIsPlaying(true);
+        setIsLoadingTTS(true);
+        
+        try {
+          await playCurrentPhase();
+          
+          // 타이머 시작
+          timerRef.current = setInterval(() => {
+            setCurrentTime(prev => {
+              const newTime = prev + 1;
+              const newPhase = getCurrentPhase(newTime);
+              
+              if (newPhase !== currentPhase) {
+                setCurrentPhase(newPhase);
+                setTimeout(() => playCurrentPhase(newPhase), 100);
+              }
+              
+              if (newTime >= totalDuration) {
+                if (timerRef.current) {
+                  clearInterval(timerRef.current);
+                  timerRef.current = null;
+                }
+                webTTS.stop();
+                setIsPlaying(false);
+                return totalDuration;
+              }
+              
+              return newTime;
+            });
+          }, 1000);
+        } catch (error) {
+          console.error('재생 실패:', error);
+          setIsPlaying(false);
+        } finally {
+          setIsLoadingTTS(false);
+        }
       }
     }
   };
@@ -151,10 +173,8 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    // Web TTS 중지
+    webTTS.stop();
     setIsPlaying(false);
     setCurrentTime(0);
     setCurrentPhase('intro');
