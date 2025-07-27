@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, Pause, Square, FileText, Timer, Brain, Volume2 } from "lucide-react";
-import { generateTTS } from "@/services/meditationService";
-import { webTTS } from "@/utils/webSpeechTTS";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MeditationPlayerProps {
   meditationData: {
@@ -28,58 +27,99 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
   const [showScript, setShowScript] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [isLoadingTTS, setIsLoadingTTS] = useState(false);
-  const [audioUrls, setAudioUrls] = useState<{intro?: string, core?: string, outro?: string}>({});
-  
+  const [audioUrls, setAudioUrls] = useState<{
+    intro?: string;
+    core?: string;
+    outro?: string;
+  }>({});
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const totalDuration = meditationData.inputData.duration * 60; // 분을 초로 변환
 
-  // 페이즈별 시간 분배 (intro: 15%, core: 70%, outro: 15%)
+  // 단계별 시간 계산 (1/3씩 분할)
   const phaseTimings = {
-    intro: totalDuration * 0.15,
-    core: totalDuration * 0.7,
-    outro: totalDuration * 0.15
+    intro: Math.floor(totalDuration / 3),
+    core: Math.floor(totalDuration / 3),
+    outro: totalDuration - (Math.floor(totalDuration / 3) * 2)
   };
 
-  const getCurrentPhase = (time: number) => {
+  const getCurrentPhase = (time: number): 'intro' | 'core' | 'outro' => {
     if (time < phaseTimings.intro) return 'intro';
     if (time < phaseTimings.intro + phaseTimings.core) return 'core';
     return 'outro';
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const playCurrentPhase = async (phase?: 'intro' | 'core' | 'outro') => {
-    const phaseToPlay = phase || currentPhase;
-    const phaseText = getCurrentPhaseText();
-    
-    if (!phaseText) return;
+  // OpenAI TTS로 오디오 생성
+  const generateAudioForPhase = async (phase: 'intro' | 'core' | 'outro'): Promise<string | null> => {
+    const phaseText = getCurrentPhaseText(phase);
+    if (!phaseText) return null;
 
     try {
-      setIsLoadingTTS(true);
+      console.log(`${phase} 오디오 생성 중...`);
       
-      // Web Speech API 사용
-      console.log(`${phaseToPlay} 단계 TTS 시작:`, phaseText.substring(0, 50));
-      
-      // 기존 TTS 중지
-      webTTS.stop();
-      
-      // 새로운 텍스트 재생
-      await webTTS.speak(phaseText, {
-        rate: 0.7,  // 명상에 적합한 느린 속도
-        pitch: 1.0,
-        volume: 0.9
+      const { data, error } = await supabase.functions.invoke('generate-meditation', {
+        body: {
+          action: 'generate-tts',
+          text: phaseText
+        }
       });
-      
-      console.log(`${phaseToPlay} 단계 TTS 완료`);
+
+      if (error) {
+        console.error(`${phase} TTS 생성 오류:`, error);
+        return null;
+      }
+
+      if (data?.audioContent) {
+        // Base64를 Blob으로 변환하여 오디오 URL 생성
+        const audioBlob = new Blob([
+          Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))
+        ], { type: 'audio/mpeg' });
+        
+        const audioUrl = URL.createObjectURL(audioBlob);
+        console.log(`${phase} 오디오 생성 완료`);
+        return audioUrl;
+      }
+
+      return null;
     } catch (error) {
-      console.error('TTS 재생 실패:', error);
-    } finally {
+      console.error(`${phase} TTS 생성 실패:`, error);
+      return null;
+    }
+  };
+
+  // 현재 단계 재생
+  const playCurrentPhase = async (phase?: 'intro' | 'core' | 'outro') => {
+    const targetPhase = phase || currentPhase;
+    
+    // 기존 오디오가 있으면 사용, 없으면 생성
+    let audioUrl = audioUrls[targetPhase];
+    
+    if (!audioUrl) {
+      setIsLoadingTTS(true);
+      audioUrl = await generateAudioForPhase(targetPhase);
+      
+      if (audioUrl) {
+        setAudioUrls(prev => ({ ...prev, [targetPhase]: audioUrl }));
+      }
       setIsLoadingTTS(false);
+    }
+
+    if (audioUrl && audioRef.current) {
+      audioRef.current.src = audioUrl;
+      try {
+        await audioRef.current.play();
+        console.log(`${targetPhase} 재생 시작`);
+      } catch (error) {
+        console.error(`${targetPhase} 재생 오류:`, error);
+      }
     }
   };
 
@@ -90,35 +130,38 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      // Web TTS 일시정지
-      webTTS.pause();
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       setIsPlaying(false);
     } else {
-      // 재생 시작 또는 재개
-      const ttsState = webTTS.getPlayingState();
+      // 재생 시작
+      setIsPlaying(true);
       
-      if (ttsState.isPaused) {
-        // 일시정지 상태에서 재개
-        webTTS.resume();
-        setIsPlaying(true);
+      try {
+        await playCurrentPhase();
         
-        // 타이머 재시작
+        // 타이머 시작
         timerRef.current = setInterval(() => {
           setCurrentTime(prev => {
             const newTime = prev + 1;
             const newPhase = getCurrentPhase(newTime);
             
+            // 단계 변경 시 새로운 오디오 재생
             if (newPhase !== currentPhase) {
               setCurrentPhase(newPhase);
               setTimeout(() => playCurrentPhase(newPhase), 100);
             }
             
+            // 시간 종료 시 정지
             if (newTime >= totalDuration) {
               if (timerRef.current) {
                 clearInterval(timerRef.current);
                 timerRef.current = null;
               }
-              webTTS.stop();
+              if (audioRef.current) {
+                audioRef.current.pause();
+              }
               setIsPlaying(false);
               return totalDuration;
             }
@@ -126,44 +169,9 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
             return newTime;
           });
         }, 1000);
-      } else {
-        // 새로 시작
-        setIsPlaying(true);
-        setIsLoadingTTS(true);
-        
-        try {
-          await playCurrentPhase();
-          
-          // 타이머 시작
-          timerRef.current = setInterval(() => {
-            setCurrentTime(prev => {
-              const newTime = prev + 1;
-              const newPhase = getCurrentPhase(newTime);
-              
-              if (newPhase !== currentPhase) {
-                setCurrentPhase(newPhase);
-                setTimeout(() => playCurrentPhase(newPhase), 100);
-              }
-              
-              if (newTime >= totalDuration) {
-                if (timerRef.current) {
-                  clearInterval(timerRef.current);
-                  timerRef.current = null;
-                }
-                webTTS.stop();
-                setIsPlaying(false);
-                return totalDuration;
-              }
-              
-              return newTime;
-            });
-          }, 1000);
-        } catch (error) {
-          console.error('재생 실패:', error);
-          setIsPlaying(false);
-        } finally {
-          setIsLoadingTTS(false);
-        }
+      } catch (error) {
+        console.error('재생 실패:', error);
+        setIsPlaying(false);
       }
     }
   };
@@ -173,269 +181,254 @@ export default function MeditationPlayer({ meditationData, onBack }: MeditationP
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    // Web TTS 중지
-    webTTS.stop();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     setIsPlaying(false);
     setCurrentTime(0);
     setCurrentPhase('intro');
   };
 
-  const progress = (currentTime / totalDuration) * 100;
-  const remainingTime = totalDuration - currentTime;
-
+  // 컴포넌트 언마운트 시 정리
   useEffect(() => {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      // 생성된 오디오 URL 정리
+      Object.values(audioUrls).forEach(url => {
+        if (url) URL.revokeObjectURL(url);
+      });
     };
-  }, []);
+  }, [audioUrls]);
 
-  const getPhaseText = () => {
-    switch (currentPhase) {
-      case 'intro': return '도입';
-      case 'core': return '명상';
-      case 'outro': return '마무리';
-      default: return '';
-    }
+  const progress = (currentTime / totalDuration) * 100;
+  const remainingTime = totalDuration - currentTime;
+
+  const getPhaseText = (phase: 'intro' | 'core' | 'outro'): string => {
+    const phaseNames = {
+      intro: '도입부',
+      core: '본 명상',
+      outro: '마무리'
+    };
+    return phaseNames[phase];
   };
 
-  const getCurrentScript = () => {
+  const getCurrentScript = (): string => {
     return meditationData.meditation.textContent;
   };
 
+  // 스크립트에서 단계별 텍스트 추출
   const parseTextContent = (text: string) => {
-    if (!text) {
-      return {
-        intro: '도입부 내용이 없습니다.',
-        core: '본 명상 내용이 없습니다.',
-        outro: '마무리 내용이 없습니다.'
-      };
+    const sections = {
+      intro: '',
+      core: '',
+      outro: ''
+    };
+
+    // **도입부**, **본 명상**, **마무리** 섹션으로 분리
+    const introMatch = text.match(/\*\*도입부\*\*([\s\S]*?)(?=\*\*본 명상\*\*|\*\*마무리\*\*|$)/);
+    const coreMatch = text.match(/\*\*본 명상\*\*([\s\S]*?)(?=\*\*마무리\*\*|$)/);
+    const outroMatch = text.match(/\*\*마무리\*\*([\s\S]*?)$/);
+
+    if (introMatch) {
+      sections.intro = introMatch[1].trim();
+    }
+    if (coreMatch) {
+      sections.core = coreMatch[1].trim();
+    }
+    if (outroMatch) {
+      sections.outro = outroMatch[1].trim();
     }
 
-    // Try to split by **headers** first
-    let sections = text.split(/\*\*[^*]+\*\*/);
-    
-    // If that doesn't work, try splitting by common Korean meditation section words
-    if (sections.length < 4) {
-      sections = text.split(/(도입부|본 명상|마무리)/);
+    // 섹션이 비어있으면 전체 텍스트를 3등분
+    if (!sections.intro && !sections.core && !sections.outro) {
+      const words = text.split(' ');
+      const wordsPerSection = Math.ceil(words.length / 3);
+      sections.intro = words.slice(0, wordsPerSection).join(' ');
+      sections.core = words.slice(wordsPerSection, wordsPerSection * 2).join(' ');
+      sections.outro = words.slice(wordsPerSection * 2).join(' ');
     }
-    
-    // If still no sections, treat the whole text as core content
-    if (sections.length < 4) {
-      const thirdLength = Math.floor(text.length / 3);
-      return {
-        intro: text.substring(0, thirdLength) || '도입부 내용이 없습니다.',
-        core: text.substring(thirdLength, thirdLength * 2) || '본 명상 내용이 없습니다.',
-        outro: text.substring(thirdLength * 2) || '마무리 내용이 없습니다.'
-      };
-    }
-    
-    return {
-      intro: sections[1]?.trim() || '도입부 내용이 없습니다.',
-      core: sections[2]?.trim() || '본 명상 내용이 없습니다.',
-      outro: sections[3]?.trim() || '마무리 내용이 없습니다.'
-    };
+
+    return sections;
   };
 
-  const parsedContent = parseTextContent(meditationData.meditation.textContent);
-
-  const getCurrentPhaseText = () => {
-    switch (currentPhase) {
-      case 'intro': return parsedContent.intro;
-      case 'core': return parsedContent.core;
-      case 'outro': return parsedContent.outro;
-      default: return '';
-    }
+  const getCurrentPhaseText = (phase?: 'intro' | 'core' | 'outro'): string => {
+    const targetPhase = phase || currentPhase;
+    const sections = parseTextContent(meditationData.meditation.textContent);
+    return sections[targetPhase] || '';
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background p-6 max-w-4xl mx-auto">
       {/* 숨겨진 오디오 엘리먼트 */}
-      <audio ref={audioRef} style={{ display: 'none' }} />
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        {/* 헤더 */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              돌아가기
-            </Button>
-            <div className="flex items-center gap-2">
-              {meditationData.emotionAnalysis && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowAnalysis(!showAnalysis)}
-                  className="flex items-center gap-1"
-                >
-                  <Brain className="w-3 h-3" />
-                  분석결과
-                </Button>
-              )}
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Timer className="w-3 h-3" />
-                {getPhaseText()} 단계
-              </Badge>
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-foreground mb-3 tracking-tight">
-              나만의 명상
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              {meditationData.inputData.duration}분 개인화된 명상 세션
-            </p>
-          </div>
+      <audio ref={audioRef} />
+      
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-8">
+        <Button 
+          variant="ghost" 
+          onClick={onBack}
+          className="gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          돌아가기
+        </Button>
+        
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground">
+            {meditationData.inputData.name}님의 명상
+          </h1>
+          <p className="text-muted-foreground">
+            {meditationData.inputData.duration}분 개인 맞춤 명상
+          </p>
         </div>
+        
+        <div className="w-20" /> {/* 헤더 균형을 위한 빈 공간 */}
+      </div>
 
-        {/* 감정 분석 결과 */}
-        {showAnalysis && meditationData.emotionAnalysis && (
-          <Card className="border shadow-notion mb-8 animate-fade-in">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Brain className="w-5 h-5" />
-                감정 분석 결과
-              </h3>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-foreground leading-relaxed">
-                  {meditationData.emotionAnalysis}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 메인 플레이어 */}
-        <Card className="border shadow-notion mb-8 animate-fade-in">
-          <CardContent className="p-12 text-center">
-            {/* 시간 표시 */}
-            <div className="mb-12">
-              <div className="text-6xl font-bold text-foreground mb-2 tracking-tight">
-                {formatTime(remainingTime)}
-              </div>
-              <p className="text-muted-foreground">
-                남은 시간
-              </p>
+      {/* 메인 플레이어 카드 */}
+      <Card className="border shadow-notion mb-6">
+        <CardContent className="p-8">
+          {/* 진행 상황 표시 */}
+          <div className="text-center mb-8">
+            <Badge variant="outline" className="mb-4">
+              {getPhaseText(currentPhase)}
+            </Badge>
+            
+            {/* 진행 바 */}
+            <div className="w-full bg-muted rounded-full h-2 mb-4">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
             </div>
+            
+            {/* 시간 정보 */}
+            <div className="flex justify-between text-sm text-muted-foreground mb-6">
+              <span>{formatTime(currentTime)}</span>
+              <span>남은 시간: {formatTime(remainingTime)}</span>
+            </div>
+          </div>
 
-            {/* 프로그레스 바 */}
-            <div className="space-y-4 mb-12">
-              <div className="w-full bg-muted rounded-full h-2">
+          {/* 플레이어 컨트롤 */}
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleReset}
+              disabled={isLoadingTTS}
+            >
+              <Square className="w-5 h-5" />
+            </Button>
+            
+            <Button
+              size="lg"
+              onClick={handlePlayPause}
+              disabled={isLoadingTTS}
+              className="gap-2 px-8"
+            >
+              {isLoadingTTS ? (
+                <>
+                  <Volume2 className="w-5 h-5 animate-pulse" />
+                  TTS 로딩 중...
+                </>
+              ) : isPlaying ? (
+                <>
+                  <Pause className="w-5 h-5" />
+                  일시정지
+                </>
+              ) : (
+                <>
+                  <Play className="w-5 h-5" />
+                  재생
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* 단계 표시 */}
+          <div className="flex justify-center items-center gap-6 mt-8">
+            {(['intro', 'core', 'outro'] as const).map((phase, index) => (
+              <div
+                key={phase}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                  currentPhase === phase 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'text-muted-foreground'
+                }`}
+              >
                 <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(totalDuration)}</span>
-              </div>
-            </div>
-
-            {/* 페이즈 표시 */}
-            <div className="flex justify-center space-x-2 mb-12">
-              {['intro', 'core', 'outro'].map((phase) => (
-                <div
-                  key={phase}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                    currentPhase === phase
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
+                  className={`w-2 h-2 rounded-full ${
+                    currentPhase === phase 
+                      ? 'bg-primary' 
+                      : getCurrentPhase(currentTime) === phase || currentTime > phaseTimings[phase]
+                        ? 'bg-primary/50'
+                        : 'bg-muted'
                   }`}
-                >
-                  {phase === 'intro' && '도입'}
-                  {phase === 'core' && '명상'}
-                  {phase === 'outro' && '마무리'}
-                </div>
-              ))}
-            </div>
+                />
+                <span className="text-sm font-medium">
+                  {getPhaseText(phase)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-            {/* 컨트롤 버튼 */}
-            <div className="flex justify-center items-center space-x-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleReset}
-                className="w-12 h-12 rounded-full"
-              >
-                <Square className="w-5 h-5" />
-              </Button>
-              <Button
-                size="lg"
-                onClick={handlePlayPause}
-                disabled={isLoadingTTS}
-                className="w-16 h-16 rounded-full text-xl"
-              >
-                {isLoadingTTS ? (
-                  <div className="w-6 h-6 border-2 border-current border-t-transparent animate-spin rounded-full" />
-                ) : isPlaying ? (
-                  <Pause className="w-6 h-6" />
-                ) : (
-                  <Play className="w-6 h-6" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowScript(!showScript)}
-                className="w-12 h-12 rounded-full"
-              >
-                <FileText className="w-5 h-5" />
-              </Button>
+      {/* 스크립트 및 감정 분석 버튼 */}
+      <div className="flex gap-4 mb-6">
+        <Button
+          variant="outline"
+          onClick={() => setShowScript(!showScript)}
+          className="flex-1 gap-2"
+        >
+          <FileText className="w-4 h-4" />
+          {showScript ? '스크립트 숨기기' : '스크립트 보기'}
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={() => setShowAnalysis(!showAnalysis)}
+          className="flex-1 gap-2"
+        >
+          <Brain className="w-4 h-4" />
+          {showAnalysis ? '분석 숨기기' : '감정 분석 보기'}
+        </Button>
+      </div>
+
+      {/* 감정 분석 카드 */}
+      {showAnalysis && (
+        <Card className="border shadow-notion mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Brain className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">감정 분석</h3>
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              {meditationData.emotionAnalysis}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 스크립트 카드 */}
+      {showScript && (
+        <Card className="border shadow-notion">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">명상 스크립트</h3>
+            </div>
+            <div className="prose prose-slate dark:prose-invert max-w-none">
+              <div className="whitespace-pre-line text-muted-foreground leading-relaxed">
+                {getCurrentScript()}
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* 스크립트 표시 */}
-        {showScript && (
-          <Card className="border shadow-notion animate-fade-in">
-            <CardContent className="p-8">
-              <h3 className="text-xl font-semibold text-foreground mb-6 text-center flex items-center justify-center gap-2">
-                <FileText className="w-5 h-5" />
-                현재 가이드 ({getPhaseText()} 단계)
-              </h3>
-              
-              <div className="bg-muted/50 p-6 rounded-lg mb-8">
-                <p className="text-foreground leading-relaxed text-lg whitespace-pre-line">
-                  {getCurrentPhaseText()}
-                </p>
-              </div>
-              
-              {/* 전체 스크립트 미리보기 */}
-              <details className="group">
-                <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-primary transition-smooth list-none">
-                  <div className="flex items-center gap-2">
-                    <span>전체 스크립트 보기</span>
-                    <span className="group-open:rotate-180 transition-transform">▼</span>
-                  </div>
-                </summary>
-                <div className="mt-6 space-y-6">
-                  <div className="border border-border rounded-lg p-6">
-                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <span>🌱 도입부</span>
-                    </h4>
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{parsedContent.intro}</p>
-                  </div>
-                  <div className="border border-border rounded-lg p-6">
-                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <span>🧘‍♀️ 본 명상</span>
-                    </h4>
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{parsedContent.core}</p>
-                  </div>
-                  <div className="border border-border rounded-lg p-6">
-                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <span>🌟 마무리</span>
-                    </h4>
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{parsedContent.outro}</p>
-                  </div>
-                </div>
-              </details>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      )}
     </div>
   );
 }
