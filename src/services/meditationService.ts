@@ -11,68 +11,98 @@ interface MeditationScript {
   textContent: string;
 }
 
-// 고급 감정 분석 함수
+// 고급 감정 분석 함수 - OpenAI API 우선, 실패 시 로컬 분석
 export async function analyzeEmotion(input: MeditationInput): Promise<string> {
-  console.log('감정 분석 시작...', { text: input.text.substring(0, 50) });
-  
-  const text = input.text.toLowerCase();
-  
-  // 감정 키워드 매핑
-  const emotionKeywords = {
-    stress: ['스트레스', '힘들', '어려운', '압박', '부담', '걱정', '불안'],
-    sadness: ['슬프', '우울', '외로운', '허무', '공허', '쓸쓸', '멜랑콜리'],
-    joy: ['기쁘', '행복', '좋은', '즐거운', '만족', '감사', '기분좋'],
-    anger: ['화나', '짜증', '분노', '억울', '답답', '빡치', '열받'],
-    confusion: ['혼란', '모르겠', '복잡', '어지러운', '갈피', '미궁'],
-    hope: ['희망', '기대', '꿈', '목표', '바라', '소망', '계획'],
-    fatigue: ['피곤', '지쳐', '힘없', '나른', '무기력', '권태'],
-    reflection: ['생각', '고민', '성찰', '반성', '깨달음', '인식', '자각']
-  };
-  
-  // 감정 점수 계산
-  const emotionScores: Record<string, number> = {};
-  
-  for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-    emotionScores[emotion] = keywords.reduce((score, keyword) => {
-      const matches = (text.match(new RegExp(keyword, 'g')) || []).length;
-      return score + matches;
-    }, 0);
+  try {
+    // OpenAI API로 감정 분석 시도
+    const { data, error } = await supabase.functions.invoke('generate-meditation', {
+      body: {
+        action: 'analyze-emotion',
+        name: input.name,
+        text: input.text,
+        duration: input.duration
+      }
+    });
+
+    if (!error && data?.result) {
+      console.log('OpenAI API 감정 분석 성공');
+      return data.result;
+    }
+
+    console.warn('OpenAI API 감정 분석 실패, 로컬 분석 사용:', error);
+
+  } catch (error) {
+    console.warn('API 호출 실패, 로컬 분석 사용:', error);
   }
-  
-  // 가장 높은 점수의 감정 찾기
-  const dominantEmotion = Object.entries(emotionScores)
-    .reduce((a, b) => emotionScores[a[0]] > emotionScores[b[0]] ? a : b)[0];
-  
-  // 개인화된 감정 분석 메시지 생성
-  const emotionMessages = {
-    stress: `${input.name}님의 글에서 스트레스와 긴장감이 느껴집니다. 마음의 짐을 내려놓고 깊은 안정을 찾는 명상을 진행해보겠습니다.`,
-    sadness: `${input.name}님의 마음속 슬픔과 고독감이 전해집니다. 이러한 감정을 따뜻하게 감싸 안고 위로받는 명상을 진행해보겠습니다.`,
-    joy: `${input.name}님의 글에서 기쁨과 긍정적인 에너지가 느껴집니다. 이 좋은 감정을 더욱 깊이 느끼고 확장하는 명상을 진행해보겠습니다.`,
-    anger: `${input.name}님의 분노와 좌절감이 느껴집니다. 이러한 강한 감정을 건강하게 해소하고 내면의 평화를 되찾는 명상을 진행해보겠습니다.`,
-    confusion: `${input.name}님의 마음속 혼란과 복잡함이 느껴집니다. 생각을 정리하고 명확한 방향을 찾는 명상을 진행해보겠습니다.`,
-    hope: `${input.name}님의 희망과 기대감이 느껴집니다. 이러한 긍정적인 에너지를 더욱 키우고 실현 가능성을 높이는 명상을 진행해보겠습니다.`,
-    fatigue: `${input.name}님의 피로와 무기력함이 느껴집니다. 깊은 휴식과 재충전의 시간을 가지는 명상을 진행해보겠습니다.`,
-    reflection: `${input.name}님의 깊은 성찰과 사색이 느껴집니다. 이러한 내적 여행을 더욱 의미 있게 만드는 명상을 진행해보겠습니다.`
+
+  // API 실패 시 로컬 감정 분석
+  const text = input.text.toLowerCase();
+  const stressKeywords = ['스트레스', '힘들', '어려운', '압박', '불안', '바쁜', '피곤', '지친'];
+  const sadnessKeywords = ['슬프', '우울', '외로운', '허무', '실망', '좌절'];
+  const joyKeywords = ['기쁘', '행복', '좋은', '즐거운', '만족', '성취', '감사'];
+  const confusionKeywords = ['혼란', '모르겠', '복잡', '갈피', '고민', '선택'];
+  const reflectionKeywords = ['생각', '성찰', '깨달음', '회고', '되돌아', '돌아보'];
+
+  const emotionScores = {
+    stress: stressKeywords.filter(k => text.includes(k)).length,
+    sadness: sadnessKeywords.filter(k => text.includes(k)).length,
+    joy: joyKeywords.filter(k => text.includes(k)).length,
+    confusion: confusionKeywords.filter(k => text.includes(k)).length,
+    reflection: reflectionKeywords.filter(k => text.includes(k)).length
   };
-  
-  const result = emotionMessages[dominantEmotion] || `${input.name}님의 마음을 이해하고 평온함을 찾는 명상을 진행해보겠습니다.`;
-  console.log('감정 분석 완료:', dominantEmotion);
-  return result;
+
+  const dominantEmotion = Object.entries(emotionScores)
+    .reduce((a, b) => a[1] > b[1] ? a : b)[0] || 'reflection';
+
+  const messages = {
+    stress: `${input.name}님, 오늘 하루 많은 스트레스를 받으셨나요? 깊은 호흡과 함께하는 이완 명상으로 마음의 평안을 되찾아보세요.`,
+    sadness: `${input.name}님, 마음이 무거우시군요. 따뜻한 자비와 함께하는 치유 명상으로 마음을 위로해드리겠습니다.`,
+    joy: `${input.name}님, 기쁜 일이 있으셨나요? 이 행복한 에너지를 더욱 깊이 느끼고 온몸으로 음미해보세요.`,
+    confusion: `${input.name}님, 복잡한 마음이 드시나요? 명상을 통해 내면의 지혜와 명확함을 찾아보겠습니다.`,
+    reflection: `${input.name}님, 자신을 돌아보는 소중한 시간을 가지고 싶으시군요. 깊은 성찰과 통찰의 명상을 함께해보세요.`
+  };
+
+  return messages[dominantEmotion as keyof typeof messages] || messages.reflection;
 }
 
-// 템플릿 기반 개인화 명상 스크립트 생성
+// 명상 스크립트 생성 함수 - OpenAI API 우선, 실패 시 고급 로컬 템플릿
 export async function generateMeditationScript(input: MeditationInput): Promise<MeditationScript> {
   console.log('명상 스크립트 생성 시작...', { duration: input.duration });
+  
+  try {
+    // OpenAI API로 스크립트 생성 시도
+    const { data, error } = await supabase.functions.invoke('generate-meditation', {
+      body: {
+        action: 'generate-script',
+        name: input.name,
+        text: input.text,
+        duration: input.duration
+      }
+    });
+
+    if (!error && data?.textContent) {
+      console.log('OpenAI API 스크립트 생성 성공');
+      return { textContent: data.textContent };
+    }
+
+    console.warn('OpenAI API 스크립트 생성 실패, 로컬 템플릿 사용:', error);
+
+  } catch (error) {
+    console.warn('API 호출 실패, 로컬 템플릿 사용:', error);
+  }
+
+  // API 실패 시 로컬 고급 템플릿 사용
+  console.log('로컬 고급 템플릿 사용');
   
   // 감정 분석을 위한 키워드 분석
   const text = input.text.toLowerCase();
   
   // 사용자 텍스트에서 핵심 키워드 추출
-  const stressKeywords = ['스트레스', '힘들', '어려운', '압박', '불안'];
-  const sadnessKeywords = ['슬프', '우울', '외로운', '허무'];
-  const joyKeywords = ['기쁘', '행복', '좋은', '즐거운', '만족'];
-  const confusionKeywords = ['혼란', '모르겠', '복잡', '갈피'];
-  const reflectionKeywords = ['생각', '고민', '성찰', '깨달음'];
+  const stressKeywords = ['스트레스', '힘들', '어려운', '압박', '불안', '바쁜', '피곤', '지친'];
+  const sadnessKeywords = ['슬프', '우울', '외로운', '허무', '실망', '좌절'];
+  const joyKeywords = ['기쁘', '행복', '좋은', '즐거운', '만족', '성취', '감사'];
+  const confusionKeywords = ['혼란', '모르겠', '복잡', '갈피', '고민', '선택'];
+  const reflectionKeywords = ['생각', '성찰', '깨달음', '회고', '되돌아', '돌아보'];
   
   // 감정별 점수 계산
   const emotionScores = {
@@ -86,104 +116,77 @@ export async function generateMeditationScript(input: MeditationInput): Promise<
   const dominantEmotion = Object.entries(emotionScores)
     .reduce((a, b) => a[1] > b[1] ? a : b)[0] || 'reflection';
   
-  // 시간대별 구조 정의 (총 시간을 3등분)
-  const thirdDuration = Math.floor(input.duration / 3);
-  const introDuration = thirdDuration;
-  const coreDuration = input.duration - (thirdDuration * 2);
-  const outroDuration = thirdDuration;
-  
-  // 감정별 맞춤 명상 템플릿
+  // 고급 개인화 템플릿
   const templates = {
     stress: {
-      intro: `안녕하세요, ${input.name}님. 오늘 하루 많은 스트레스와 압박을 받으셨군요. 지금부터 ${input.duration}분 동안 그 무거운 짐을 내려놓고 마음의 평안을 되찾아보겠습니다. 편안한 자세를 취하고, 깊게 숨을 들이마시며 긴장을 풀어보세요.`,
-      core: `이제 호흡에 집중해보겠습니다. 숨을 들이마실 때는 평온함을, 내쉴 때는 스트레스를 함께 내보내세요. ${input.name}님의 어깨와 목의 긴장을 의식적으로 풀어주세요. 마음속 걱정과 염려들을 구름처럼 떠나보내고, 지금 이 순간의 평화로움을 느껴보세요.`,
-      outro: `${input.name}님, 이제 깊은 휴식을 취하셨습니다. 이 평온한 상태를 기억하시고, 언제든 스트레스를 느낄 때 이 호흡법으로 돌아오세요. 천천히 눈을 뜨시고, 새롭게 충전된 에너지로 하루를 마무리하세요.`
+      intro: `안녕하세요, ${input.name}님. 오늘 하루 많은 스트레스와 압박을 받으셨나요? 지금부터 ${input.duration}분 동안 그 무거운 짐을 내려놓고 마음의 평안을 되찾아보겠습니다. 편안한 의자에 등을 기대고 앉거나 누우셔도 좋습니다. 두 눈을 부드럽게 감고, 깊게 숨을 들이마시며 어깨의 긴장을 풀어보세요. 지금 이 순간, ${input.name}님은 안전하고 평온한 공간에 있습니다.`,
+      core: `이제 호흡에 온전히 집중해보겠습니다. 코로 천천히 숨을 들이마시면서 배가 부드럽게 올라오는 것을 느껴보세요. 그리고 입으로 천천히 내쉬면서 모든 스트레스와 걱정을 함께 내보내세요. ${input.name}님의 목과 어깨, 턱의 긴장을 의식적으로 풀어주세요. 마음속에 떠오르는 걱정들은 마치 구름이 하늘을 지나가듯 자연스럽게 흘려보내주세요. 지금 이 순간의 고요함과 평화로움을 온몸으로 느껴보세요. 숨을 들이마실 때마다 평온함이, 내쉴 때마다 긴장이 사라집니다.`,
+      outro: `${input.name}님, 이제 깊은 휴식을 취하셨습니다. 이 평온한 상태를 마음에 새겨두세요. 언제든 스트레스를 느낄 때는 이 호흡법으로 돌아와 마음의 중심을 되찾으시기 바랍니다. 이제 천천히 손가락과 발가락을 움직여보고, 준비가 되면 부드럽게 눈을 뜨세요. 새롭게 충전된 에너지와 함께 남은 하루를 평안하게 보내시길 바랍니다.`
     },
     sadness: {
-      intro: `안녕하세요, ${input.name}님. 마음이 무겁고 슬픈 하루였군요. 이러한 감정도 소중한 당신의 일부입니다. 지금부터 ${input.duration}분 동안 그 슬픔을 따뜻하게 감싸 안고, 내면의 위로를 찾아보겠습니다.`,
-      core: `${input.name}님의 마음속 슬픔을 있는 그대로 받아들여보세요. 그 감정을 밀어내지 말고, 마치 오래된 친구를 맞이하듯 따뜻하게 안아주세요. 숨을 들이마실 때마다 자신에게 사랑을 보내고, 내쉴 때마다 마음의 짐을 조금씩 덜어보세요.`,
-      outro: `${input.name}님, 슬픔 속에서도 자신을 돌보는 시간을 가지셨습니다. 이런 순간들이 모여 더 깊은 자비심과 지혜를 만들어갑니다. 천천히 현재로 돌아오시며, 오늘의 경험을 소중히 간직하세요.`
+      intro: `${input.name}님, 안녕하세요. 오늘 마음이 많이 무거우신가요? 슬픔과 우울한 감정도 우리 삶의 자연스러운 일부입니다. 지금부터 ${input.duration}분 동안 그 감정을 따뜻하게 품어주고, 마음에 위로와 치유를 선사해보겠습니다. 편안한 자세로 앉아 두 손을 가슴에 올려보세요. 심장이 뛰는 소리를 느끼며, 살아있음에 감사해보세요.`,
+      core: `${input.name}님의 슬픔을 거부하지 마세요. 그 감정을 마치 오랜 친구를 대하듯 따뜻하게 맞이해주세요. 숨을 깊이 들이마시면서 마음속 상처받은 부분에 사랑과 자비를 보내보세요. 내쉴 때는 슬픔이 조금씩 가벼워지는 것을 느껴보세요. 지금 이 순간 ${input.name}님은 혼자가 아닙니다. 온 우주가 당신을 지지하고 사랑하고 있습니다. 가슴 깊은 곳에서 따뜻한 빛이 서서히 퍼져나가는 것을 상상해보세요. 그 빛이 모든 슬픔을 부드럽게 감싸안아줍니다.`,
+      outro: `${input.name}님, 슬픔 속에서도 자신을 돌봐주신 것에 감사드립니다. 이 따뜻한 자비의 감정을 기억해주세요. 슬플 때마다 자신에게 사랑을 보내는 이 연습을 떠올리시기 바랍니다. 천천히 눈을 뜨시고, 오늘 하루도 자신을 사랑하며 보내세요. 당신은 소중하고 사랑받을 자격이 있는 존재입니다.`
     },
     joy: {
-      intro: `안녕하세요, ${input.name}님. 오늘 기쁨과 행복한 마음이 느껴집니다. 이 아름다운 감정을 더욱 깊이 느끼고 확장해보는 ${input.duration}분의 시간을 가져보겠습니다.`,
-      core: `${input.name}님의 마음속 기쁨을 온몸으로 느껴보세요. 이 행복한 에너지가 가슴에서 시작해서 온몸으로 퍼져나가는 것을 상상해보세요. 감사한 마음과 함께 이 순간의 소중함을 깊이 새겨보세요.`,
-      outro: `${input.name}님, 이 아름다운 기쁨의 순간을 마음에 깊이 새기셨습니다. 이 에너지를 일상에서도 계속 간직하시고, 다른 사람들에게도 나누어주세요. 밝은 미소와 함께 하루를 마무리하세요.`
+      intro: `${input.name}님, 안녕하세요! 오늘 기쁘고 행복한 일이 있으셨나요? 이 아름다운 감정을 더욱 깊이 음미하고 온몸으로 느껴보는 ${input.duration}분의 시간을 가져보겠습니다. 편안히 앉아서 입가에 자연스러운 미소를 지어보세요. 이 기쁨이 어디서 오는지 마음속 깊이 느껴보세요.`,
+      core: `${input.name}님의 가슴 속에서 따뜻한 기쁨이 퍼져나가는 것을 느껴보세요. 숨을 들이마실 때마다 이 행복감이 온몸 구석구석까지 전해지는 것을 상상해보세요. 이 순간의 감사함을 충분히 느껴보세요. 지금 이 기쁨을 선사해준 모든 것들에 고마움을 표현해보세요. 이 행복한 에너지가 ${input.name}님 주변의 모든 사람들에게도 전해져 세상을 더 밝게 만들고 있다고 상상해보세요. 이 순간을 마음에 깊이 새겨두세요.`,
+      outro: `${input.name}님, 이 기쁨의 순간을 마음에 간직해주세요. 힘든 일이 있을 때마다 오늘의 이 행복했던 감정을 떠올리시기 바랍니다. 천천히 눈을 뜨시고, 이 긍정적인 에너지로 주변 사람들에게도 기쁨을 나누어주세요. 당신의 행복이 세상을 더 아름답게 만듭니다.`
     },
     confusion: {
-      intro: `안녕하세요, ${input.name}님. 마음이 복잡하고 혼란스러운 하루였군요. 지금부터 ${input.duration}분 동안 그 혼란한 생각들을 정리하고 명확한 방향을 찾아보겠습니다.`,
-      core: `${input.name}님의 마음속 여러 생각들을 하나씩 정리해보겠습니다. 각각의 생각을 구름처럼 떠나보내고, 호흡에만 집중해보세요. 복잡한 마음이 점점 고요해지고, 그 속에서 진정한 답이 떠오르는 것을 느껴보세요.`,
-      outro: `${input.name}님, 혼란 속에서도 고요한 중심을 찾으셨습니다. 모든 답을 지금 당장 알 필요는 없습니다. 이 평온한 마음가짐으로 하나씩 천천히 해결해나가세요.`
+      intro: `${input.name}님, 안녕하세요. 지금 마음이 복잡하고 혼란스러우신가요? 선택의 기로에서 갈등하고 계신가요? 괜찮습니다. 이런 혼란스러운 시기야말로 내면의 지혜와 만날 수 있는 소중한 기회입니다. ${input.duration}분 동안 마음을 고요히 가라앉혀 명확함을 찾아보겠습니다. 편안히 앉아 두 손을 무릎에 올리고, 깊게 숨을 쉬어보세요.`,
+      core: `${input.name}님, 지금 마음속 혼란을 마치 흐린 물처럼 생각해보세요. 잠시 그 물을 가만히 두면 자연스럽게 맑아지듯, 마음도 고요해질 수 있습니다. 호흡에 집중하면서 복잡한 생각들이 하나씩 정리되는 것을 느껴보세요. 내면 깊은 곳에 이미 답을 알고 있는 현명한 자신이 있다는 것을 믿어보세요. 숨을 들이마실 때마다 명료함이, 내쉴 때마다 혼란이 사라집니다. 지금 이 순간 ${input.name}님은 올바른 길을 찾을 수 있는 지혜를 갖고 있습니다.`,
+      outro: `${input.name}님, 고요한 마음에서 나오는 직관을 신뢰하세요. 모든 답이 한 번에 나오지 않아도 괜찮습니다. 차근차근 한 걸음씩 나아가시면 됩니다. 천천히 눈을 뜨시고, 내면의 지혜를 믿으며 현명한 선택을 해나가세요. 당신 안에는 이미 모든 답이 있습니다.`
     },
     reflection: {
-      intro: `안녕하세요, ${input.name}님. 깊은 성찰과 사색의 시간을 보내셨군요. 지금부터 ${input.duration}분 동안 그 내적 여행을 더욱 의미 있게 만들어보겠습니다.`,
-      core: `${input.name}님의 깊은 사색을 이어가보세요. 지금까지의 경험과 깨달음들을 차분히 되돌아보며, 그 속에서 자신만의 지혜를 발견해보세요. 과거와 현재, 그리고 미래의 자신과 대화하는 시간을 가져보세요.`,
-      outro: `${input.name}님, 성찰의 시간을 통해 더 깊은 자기 이해에 도달하셨습니다. 이러한 내면의 여행이 앞으로의 삶을 더욱 풍요롭게 만들어갈 것입니다. 지혜로운 마음으로 새로운 하루를 맞이하세요.`
+      intro: `${input.name}님, 안녕하세요. 오늘은 자신을 돌아보고 성찰하는 시간을 가지고 싶으시군요. 이런 시간은 우리 삶에서 정말 소중합니다. ${input.duration}분 동안 조용히 내면을 탐색하며 깊은 통찰을 얻어보겠습니다. 편안한 자세로 앉아 척추를 곧게 세우고, 자연스럽게 호흡해보세요.`,
+      core: `${input.name}님, 이제 마음의 눈으로 지나온 시간들을 부드럽게 바라보세요. 판단하지 말고 그저 관찰만 해보세요. 성장한 부분들, 배운 교훈들, 소중했던 순간들을 차례로 떠올려보세요. 실수나 후회도 모두 소중한 배움의 과정이었음을 인정해주세요. 숨을 들이마실 때마다 자신에 대한 이해가 깊어지고, 내쉴 때마다 자기 수용이 커집니다. 지금의 ${input.name}님은 완벽하지 않아도 충분히 가치 있는 존재입니다. 앞으로 나아갈 방향에 대한 지혜가 마음속에서 조용히 떠오르는 것을 느껴보세요.`,
+      outro: `${input.name}님, 자신을 성찰하는 이 소중한 시간을 가져주셔서 감사합니다. 오늘 얻은 통찰을 마음에 깊이 새겨두세요. 계속해서 자신과 대화하며 성장해나가시기 바랍니다. 천천히 눈을 뜨시고, 새로운 이해와 함께 더욱 지혜로운 하루를 보내세요. 자기 성찰은 가장 큰 선물입니다.`
     }
   };
+
+  const template = templates[dominantEmotion as keyof typeof templates] || templates.reflection;
   
-  const template = templates[dominantEmotion] || templates.reflection;
-  
-  const personalizedScript = `
-**도입부** (${introDuration}분)
+  const textContent = `**도입부**
 
 ${template.intro}
 
-편안한 자세를 취하고 눈을 부드럽게 감아보세요. 깊게 숨을 들이마시고... 천천히 내쉬어보세요. 세 번 더 깊은 호흡을 해보겠습니다. 들이마시고... 내쉬고... 들이마시고... 내쉬고... 들이마시고... 내쉬세요.
-
-**본 명상** (${coreDuration}분)
+**본 명상**
 
 ${template.core}
 
-이제 자연스러운 호흡의 리듬을 느껴보세요. 호흡이 들어오고 나갈 때마다 ${input.name}님의 몸과 마음이 더욱 편안해지는 것을 느껴보세요. 
+**마무리**
 
-몸의 각 부분을 차례로 의식해보겠습니다. 발끝부터 시작해서... 다리... 허리... 가슴... 어깨... 팔... 목... 그리고 머리까지... 각 부분이 편안하게 이완되는 것을 느껴보세요.
+${template.outro}`;
 
-${input.name}님만의 특별한 이 순간을 깊이 느끼고 기억해주세요.
-
-**마무리** (${outroDuration}분)
-
-${template.outro}
-
-이제 서서히 주변의 소리들을 의식해보세요. 호흡이 자연스럽게 돌아오고, 몸의 감각이 돌아오는 것을 느껴보세요. 
-
-손가락과 발가락을 가볍게 움직여보고, 목을 좌우로 부드럽게 돌려보세요. 
-
-준비가 되시면 천천히, 정말 천천히 눈을 뜨세요. ${input.name}님, 오늘도 수고 많으셨습니다.
-  `;
-  
-  console.log('개인화된 명상 스크립트 생성 완료:', dominantEmotion);
-  
-  return {
-    textContent: personalizedScript.trim()
-  };
+  console.log('로컬 고급 템플릿 생성 완료:', dominantEmotion);
+  return { textContent };
 }
 
-// Web Speech API를 사용한 브라우저 내장 TTS (API 무관)
+// TTS 준비 함수 - Web Speech API 사용
 export async function generateTTS(text: string): Promise<string | null> {
   try {
-    console.log('브라우저 TTS 준비...', { textLength: text.length });
-    
     // Web Speech API 지원 확인
     if (!('speechSynthesis' in window)) {
-      console.error('이 브라우저는 Web Speech API를 지원하지 않습니다.');
+      console.warn('Web Speech API를 지원하지 않는 브라우저입니다.');
       return null;
     }
-    
-    // 음성 목록이 로딩될 때까지 대기
-    await new Promise((resolve) => {
+
+    // 음성 대기
+    await new Promise<void>((resolve) => {
       const voices = speechSynthesis.getVoices();
       if (voices.length > 0) {
-        resolve(voices);
+        resolve();
       } else {
-        speechSynthesis.addEventListener('voiceschanged', resolve, { once: true });
+        speechSynthesis.addEventListener('voiceschanged', () => resolve(), { once: true });
       }
     });
-    
-    console.log('브라우저 TTS 준비 완료');
-    // Web Speech API는 URL이 아닌 직접 재생 방식이므로 특별한 식별자 반환
-    return 'web-speech-api-ready';
+
+    console.log('Web Speech API TTS 준비 완료');
+    return 'ready';
+
   } catch (error) {
-    console.error('브라우저 TTS 준비 실패:', error);
+    console.error('TTS 준비 중 오류:', error);
     return null;
   }
 }
